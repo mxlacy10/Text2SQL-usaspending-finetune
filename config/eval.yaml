@@ -1,0 +1,16 @@
+seed: 42
+test_split: data/splits/test.jsonl
+train_split: data/splits/train.jsonl
+schema_card: data/schema_card.md
+results_dir: results
+# Few-shot pool size drawn (stratified by tag, deterministic via seed) from
+# train_split for the "base model, few-shot (k=5) plus schema-RAG" baseline.
+k_shot: 5
+max_tokens: 256
+zero_shot_prompt: t2s_sql_system_v1.md
+few_shot_prompt: t2s_sql_fewshot_v1.md
+# Optional published per-1K-token pricing for the frontier model, used only
+# to compute cost_per_1k_queries for that baseline. Left unset (null) means
+# "not computed" -- AGENTS.md rule 1 forbids fabricating a placeholder price.
+frontier_input_price_per_1k_usd: null
+frontier_output_price_per_1k_usd: null
