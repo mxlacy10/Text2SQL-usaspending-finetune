@@ -1,0 +1,18 @@
+seed: 42
+spark:
+  app_name: t2s
+  warehouse_dir: ./spark-warehouse
+catalog: null            # set to a Unity Catalog name when running on Databricks
+schema: usaspending
+data:
+  raw_dir: ./data/raw
+  # TODO(max): pick the exact slice (agencies / award types) and record it here
+  fiscal_years: [2022, 2023, 2024]
+  award_types: [contracts]
+models:
+  base: Qwen/Qwen2.5-7B-Instruct
+  alternate: meta-llama/Llama-3.1-8B-Instruct
+  frontier: null         # record exact model ID + date when used
+mlflow:
+  tracking_uri: ./mlruns
+  experiment: text2sql-usaspending

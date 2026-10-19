@@ -1,0 +1,27 @@
+# secrets
+.env
+*.env
+# python
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+# data and artifacts (see AGENTS.md rule 4)
+data/*
+!data/splits/
+data/splits/*
+!data/splits/.gitkeep
+!data/splits/*.jsonl
+!data/schema_card.md
+spark-warehouse/
+metastore_db/
+derby.log
+mlruns/
+outputs/
+checkpoints/
+adapters/
+*.safetensors
+*.bin
+*.gguf
