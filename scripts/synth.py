@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> None:
     schema_card = Path(args.schema_card).read_text()
     tags: list[DifficultyTag] = [t.strip() for t in args.tags.split(",") if t.strip()]
 
-    client = get_frontier_client(config.models.frontier)
+    client = get_frontier_client(config.models.frontier, config.models.frontier_azure_endpoint)
     logger.info("Generating %d candidates per tag for tags=%s", args.n_per_tag, tags)
     candidates = generate_candidates(client, schema_card, tags, args.n_per_tag)
     logger.info("Generated %d raw candidates", len(candidates))

@@ -32,6 +32,10 @@ class ModelsSettings(BaseModel):
     base: str
     alternate: str
     frontier: str | None = None
+    # Set only when the frontier model is served via an Azure AI Foundry
+    # deployment (OpenAI Responses API + Azure AD auth) rather than the
+    # public OpenAI/Anthropic APIs. See src/t2s/synth/llm.py AzureFoundryClient.
+    frontier_azure_endpoint: str | None = None
 
 
 class MLflowSettings(BaseModel):

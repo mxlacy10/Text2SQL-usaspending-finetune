@@ -24,3 +24,19 @@ def test_get_frontier_client_missing_key_raises(monkeypatch: pytest.MonkeyPatch)
 def test_get_frontier_client_unknown_model_raises() -> None:
     with pytest.raises(ValueError, match="Don't know which provider"):
         get_frontier_client("mystery-model-9000")
+
+
+def test_get_frontier_client_azure_endpoint_takes_priority(monkeypatch: pytest.MonkeyPatch) -> None:
+    import azure.identity
+
+    monkeypatch.setattr(azure.identity, "DefaultAzureCredential", lambda: object(), raising=False)
+    monkeypatch.setattr(
+        azure.identity,
+        "get_bearer_token_provider",
+        lambda *_args, **_kwargs: lambda: "fake-token",
+        raising=False,
+    )
+    client = get_frontier_client(
+        "gpt-5-chat", azure_endpoint="https://example.services.ai.azure.com/openai/v1"
+    )
+    assert type(client).__name__ == "AzureFoundryClient"

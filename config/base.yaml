@@ -14,7 +14,8 @@ data:
 models:
   base: Qwen/Qwen2.5-7B-Instruct
   alternate: meta-llama/Llama-3.1-8B-Instruct
-  frontier: null         # record exact model ID + date when used
+  frontier: gpt-5-chat   # Azure AI Foundry deployment, set 2026-10-19 (record exact model ID + date when used)
+  frontier_azure_endpoint: https://foundrydemogbp-resource.services.ai.azure.com/openai/v1
 mlflow:
   tracking_uri: ./mlruns
   experiment: text2sql-usaspending
