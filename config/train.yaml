@@ -1,0 +1,14 @@
+seed: 42
+# MLX-format 4-bit quantization of the upstream base model, used for QLoRA
+# fine-tuning on Apple Silicon (see src/t2s/train/config.py docstring).
+mlx_model: mlx-community/Qwen2.5-3B-Instruct-4bit
+upstream_base_model: Qwen/Qwen2.5-3B-Instruct
+splits_dir: data/splits
+mlx_data_dir: data/mlx_train
+adapter_path: adapters/qwen2.5-3b-t2s-sql
+iters: 300
+batch_size: 2
+learning_rate: 1.0e-5
+lora_layers: 8
+mask_prompt: true
+fine_tune_type: lora

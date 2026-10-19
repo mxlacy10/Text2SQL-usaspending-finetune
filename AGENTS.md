@@ -4,9 +4,9 @@ Instructions for AI coding agents (Claude Code, Copilot, Codex, Cursor) working 
 
 ## What this project is
 
-A QLoRA fine-tune of a ~7B open model that turns natural-language questions about federal spending into **Spark SQL** over **USAspending.gov** award data stored in **Delta** tables. The fine-tuned model is evaluated against zero-shot, few-shot/schema-RAG, and frontier-model baselines on a held-out test set.
+A QLoRA fine-tune of a ~3B open model that turns natural-language questions about federal spending into **Spark SQL** over **USAspending.gov** award data stored in **Delta** tables. The fine-tuned model is evaluated against zero-shot, few-shot/schema-RAG, and frontier-model baselines on a held-out test set.
 
-**Main claim:** the fine-tuned 7B model matches or beats few-shot prompting on **execution accuracy**, at a fraction of the cost and latency of a frontier model. Every number in the README has to come from a committed eval run.
+**Main claim:** the fine-tuned model matches or beats few-shot prompting on **execution accuracy**, at a fraction of the cost and latency of a frontier model. Every number in the README has to come from a committed eval run.
 
 Owner: Max Lacy (@mxlacy). This is a public portfolio project. Code quality, reproducibility, and honest reporting matter more than a high score.
 
@@ -30,7 +30,7 @@ USAspending bulk/API ──► ingest (PySpark) ──► Delta tables (bronze �
                                    │
         execution filter + dedupe + difficulty tagging ──► train / dev / test splits
                                    │
-             QLoRA fine-tune (Unsloth, T4/A10/L4 GPU) ──► LoRA adapter
+             QLoRA fine-tune (mlx-lm, Apple Silicon) ──► LoRA adapter
                                    │
    eval harness: base zero-shot · base few-shot/schema-RAG · frontier · fine-tuned
                                    │
@@ -47,7 +47,7 @@ src/t2s/
   ingest/          USAspending download + PySpark → Delta (bronze/silver)
   schema/          schema card builder (table/column descriptions, sample values)
   synth/           question→SQL generation, execution filter, dedupe, splits
-  train/           QLoRA fine-tuning (Unsloth / PEFT / TRL)
+  train/           QLoRA fine-tuning (mlx-lm, Apple Silicon)
   eval/            execution-accuracy harness, baselines, metrics
   serve/           FastAPI app for the fine-tuned model
   common/          spark session, sql execution, prompt templates, logging
@@ -64,7 +64,7 @@ tests/             pytest unit tests
 - **PySpark + delta-spark** for ingest and SQL execution. Locally, run Spark in local mode. On Databricks, use the same code against Unity Catalog tables via `config/base.yaml: catalog`.
 - **SQL dialect: Spark SQL.** Gold SQL and model outputs are Spark SQL. Don't introduce DuckDB, Postgres, or T-SQL syntax.
 - **sqlglot** for parsing and normalizing SQL (exact-match metric, syntax validation).
-- **Fine-tuning:** Unsloth + TRL `SFTTrainer`, QLoRA (4-bit). Default base: `Qwen/Qwen2.5-7B-Instruct`. Alternate: `meta-llama/Llama-3.1-8B-Instruct`.
+- **Fine-tuning:** `mlx-lm` LoRA/QLoRA (4-bit) on Apple Silicon via Metal. Default base: `Qwen/Qwen2.5-3B-Instruct`, served via its MLX-format 4-bit quantization (`mlx-community/Qwen2.5-3B-Instruct-4bit`). TODO(max): the project originally targeted Unsloth+bitsandbytes QLoRA on a 7B model (T4/A10/L4 GPU), but development happens on an Apple M1 (16GB RAM, no CUDA), so the stack switched to mlx-lm and the base model dropped from 7B to 3B to fit comfortably in RAM. If a CUDA GPU becomes available, the original Unsloth/7B path remains a documented alternate, not reinstated here.
 - **Tracking:** MLflow (local `mlruns/` or Databricks-hosted). Log params, metrics, and the adapter as an artifact.
 - **Serving:** FastAPI + vLLM or HF `transformers` with the merged adapter.
 - **Lint/format/test:** `ruff`, `ruff format`, `mypy --strict` on `src/`, `pytest`.
@@ -108,13 +108,13 @@ Each run writes `results/<run_name>.json` and logs to MLflow. `scripts/report.py
 uv sync
 uv run python scripts/ingest.py --config config/base.yaml        # USAspending → Delta
 uv run python scripts/synth.py  --config config/base.yaml        # generate + filter + split
-uv run python scripts/train.py  --config config/train.yaml       # QLoRA (GPU required)
+uv run python scripts/train.py  --config config/train.yaml       # QLoRA via mlx-lm (Apple Silicon)
 uv run python scripts/eval.py   --config config/eval.yaml --model finetuned
 uv run python scripts/report.py                                  # regenerate README results
 uv run ruff check . && uv run ruff format --check . && uv run mypy src && uv run pytest
 ```
 
-Training needs a CUDA GPU. A free Colab or Kaggle T4 works for 7B QLoRA. Everything else should run on a laptop CPU with Spark local mode.
+Training runs locally on Apple Silicon via `mlx-lm` (Metal), no CUDA GPU required. Everything else should run on a laptop CPU with Spark local mode.
 
 ## Coding conventions
 

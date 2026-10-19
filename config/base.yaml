@@ -12,7 +12,10 @@ data:
   # Empty list = no agency filter (all of government; not recommended locally).
   agencies: ["Department of Veterans Affairs"]
 models:
-  base: Qwen/Qwen2.5-7B-Instruct
+  # mlx-community/Qwen2.5-3B-Instruct-4bit, see config/train.yaml (TODO(max):
+  # originally targeted the 7B model via Unsloth/CUDA; downsized to fit
+  # local Apple Silicon (M1, 16GB) training, see AGENTS.md Stack section)
+  base: Qwen/Qwen2.5-3B-Instruct
   alternate: meta-llama/Llama-3.1-8B-Instruct
   frontier: gpt-5-chat   # Azure AI Foundry deployment, set 2026-10-19 (record exact model ID + date when used)
   frontier_azure_endpoint: https://foundrydemogbp-resource.services.ai.azure.com/openai/v1
