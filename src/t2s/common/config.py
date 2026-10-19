@@ -23,6 +23,9 @@ class DataSettings(BaseModel):
     raw_dir: str
     fiscal_years: list[int]
     award_types: list[AwardType]
+    # Toptier awarding agency names to bound the slice. Empty = no filter
+    # (all of government), which is not recommended for a local Spark setup.
+    agencies: list[str] = []
 
 
 class ModelsSettings(BaseModel):

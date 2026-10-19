@@ -6,9 +6,11 @@ catalog: null            # set to a Unity Catalog name when running on Databrick
 schema: usaspending
 data:
   raw_dir: ./data/raw
-  # TODO(max): pick the exact slice (agencies / award types) and record it here
   fiscal_years: [2022, 2023, 2024]
   award_types: [contracts]
+  # Bounded to one awarding agency (toptier) so local Spark stays fast.
+  # Empty list = no agency filter (all of government; not recommended locally).
+  agencies: ["Department of Veterans Affairs"]
 models:
   base: Qwen/Qwen2.5-7B-Instruct
   alternate: meta-llama/Llama-3.1-8B-Instruct

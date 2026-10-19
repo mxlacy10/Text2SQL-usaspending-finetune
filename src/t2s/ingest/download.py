@@ -43,15 +43,26 @@ def fiscal_year_date_range(fiscal_year: int) -> tuple[str, str]:
     return start, end
 
 
-def build_filters(fiscal_year: int, award_types: list[AwardType]) -> dict[str, object]:
-    """Build the `filters` payload for one fiscal year's bulk-download request."""
+def build_filters(
+    fiscal_year: int, award_types: list[AwardType], agencies: list[str] | None = None
+) -> dict[str, object]:
+    """Build the `filters` payload for one fiscal year's bulk-download request.
+
+    `agencies` names toptier awarding agencies to bound the slice (e.g.
+    "Department of Veterans Affairs"). None or empty = no agency filter.
+    """
     start_date, end_date = fiscal_year_date_range(fiscal_year)
     codes = [code for award_type in award_types for code in AWARD_TYPE_CODES[award_type]]
-    return {
+    filters: dict[str, object] = {
         "prime_award_types": codes,
         "date_type": "action_date",
         "date_range": {"start_date": start_date, "end_date": end_date},
     }
+    if agencies:
+        filters["agencies"] = [
+            {"type": "awarding", "tier": "toptier", "name": name} for name in agencies
+        ]
+    return filters
 
 
 def request_bulk_download(filters: dict[str, object], client: httpx.Client) -> dict[str, str]:
@@ -108,11 +119,12 @@ def download_fiscal_year(
     award_types: list[AwardType],
     raw_dir: Path,
     client: httpx.Client,
+    agencies: list[str] | None = None,
     poll_interval_seconds: float = 10.0,
     timeout_seconds: float = 3600.0,
 ) -> list[Path]:
     """Request, wait for, download, and extract one fiscal year's award data."""
-    filters = build_filters(fiscal_year, award_types)
+    filters = build_filters(fiscal_year, award_types, agencies)
     submission = request_bulk_download(filters, client)
     status = poll_until_ready(
         submission["status_url"],
@@ -140,6 +152,7 @@ def download_award_data(
                 config.data.award_types,
                 raw_dir,
                 client,
+                agencies=config.data.agencies,
                 poll_interval_seconds=poll_interval_seconds,
                 timeout_seconds=timeout_seconds,
             )

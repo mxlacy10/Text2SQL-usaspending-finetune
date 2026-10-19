@@ -11,3 +11,11 @@ def test_build_filters_contracts() -> None:
     assert filters["prime_award_types"] == ["A", "B", "C", "D"]
     assert filters["date_type"] == "action_date"
     assert filters["date_range"] == {"start_date": "2023-10-01", "end_date": "2024-09-30"}
+    assert "agencies" not in filters
+
+
+def test_build_filters_with_agency() -> None:
+    filters = build_filters(2024, ["contracts"], agencies=["Department of Veterans Affairs"])
+    assert filters["agencies"] == [
+        {"type": "awarding", "tier": "toptier", "name": "Department of Veterans Affairs"}
+    ]
