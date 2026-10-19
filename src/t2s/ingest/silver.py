@@ -73,14 +73,22 @@ CORE_COLUMNS: list[ColumnSpec] = [
 
 
 def build_fact_award_transactions(bronze_df: DataFrame) -> DataFrame:
-    """Select, cast, and rename bronze columns into the documented silver fact table."""
+    """Select, cast, and rename bronze columns into the documented silver fact table.
+
+    Adds `location_id`, the same hash key used by the `locations` dimension, so
+    the fact table can actually be joined to it (the fact's place-of-performance
+    columns don't otherwise share a key with the dimension's surrogate key).
+    """
     select_exprs = [
         F.col(spec.raw_name).cast(spec.spark_type).alias(spec.silver_name)
         for spec in CORE_COLUMNS
         if spec.raw_name in bronze_df.columns
     ]
-    df = bronze_df.select(*select_exprs)
-    return df.dropDuplicates(["transaction_id"])
+    df = bronze_df.select(*select_exprs).dropDuplicates(["transaction_id"])
+    return df.withColumn(
+        "location_id",
+        F.sha2(F.concat_ws("|", "pop_city_name", "pop_state_code", "pop_country_code"), 256),
+    )
 
 
 def build_dim_agencies(fact_df: DataFrame) -> DataFrame:
