@@ -25,3 +25,5 @@ adapters/
 *.safetensors
 *.bin
 *.gguf
+# reference papers
+*.pdf
