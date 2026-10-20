@@ -12,6 +12,7 @@ from __future__ import annotations
 import time
 from typing import Protocol
 
+from t2s.eval.postprocess import clean_sql_output
 from t2s.synth.llm import FrontierClient
 
 
@@ -56,7 +57,7 @@ class MlxZeroShotPredictor:
             self._model, self._tokenizer, prompt=prompt, max_tokens=self._max_tokens, verbose=False
         )
         latency_ms = (time.perf_counter() - start) * 1000
-        return output.strip(), latency_ms
+        return clean_sql_output(output), latency_ms
 
 
 class MlxFewShotPredictor:
@@ -92,7 +93,7 @@ class MlxFewShotPredictor:
             self._model, self._tokenizer, prompt=prompt, max_tokens=self._max_tokens, verbose=False
         )
         latency_ms = (time.perf_counter() - start) * 1000
-        return output.strip(), latency_ms
+        return clean_sql_output(output), latency_ms
 
 
 class FrontierFewShotPredictor:
@@ -118,4 +119,4 @@ class FrontierFewShotPredictor:
         start = time.perf_counter()
         output = self._client.generate(prompt)
         latency_ms = (time.perf_counter() - start) * 1000
-        return output.strip(), latency_ms
+        return clean_sql_output(output), latency_ms
