@@ -7,9 +7,13 @@ and latency/cost reporting.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 from t2s.synth.models import DifficultyTag
+
+ExecutionBackend = Literal["local_spark", "databricks_uc"]
 
 
 class PredictionRecord(BaseModel):
@@ -53,4 +57,6 @@ class EvalSummary(BaseModel):
     git_commit: str | None = None
     dataset_sha256: str | None = None
     prompt_sha256: str | None = None
+    # None only for results written before this field existed (all were local runs).
+    execution_backend: ExecutionBackend | None = None
     records: list[PredictionRecord]

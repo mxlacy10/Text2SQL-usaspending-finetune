@@ -31,6 +31,7 @@ from t2s.eval.config import load_eval_config
 from t2s.eval.data import load_examples
 from t2s.eval.few_shot import render_examples, select_few_shot_examples
 from t2s.eval.harness import run_eval
+from t2s.eval.models import ExecutionBackend
 from t2s.eval.predictors import (
     FrontierFewShotPredictor,
     MlxFewShotPredictor,
@@ -69,6 +70,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--config", default="config/eval.yaml")
     parser.add_argument("--base-config", default="config/base.yaml")
     parser.add_argument("--train-config", default="config/train.yaml")
+    parser.add_argument(
+        "--spark-mode",
+        choices=["local", "databricks"],
+        default=None,
+        help="Override spark.mode from the base config (never chosen implicitly).",
+    )
     return parser.parse_args(argv)
 
 
@@ -79,6 +86,11 @@ def main(argv: list[str] | None = None) -> None:
 
     eval_config = load_eval_config(args.config)
     base_config = load_base_config(args.base_config)
+    if args.spark_mode is not None:
+        base_config.spark.mode = args.spark_mode
+    backend: ExecutionBackend = (
+        "databricks_uc" if base_config.spark.mode == "databricks" else "local_spark"
+    )
     train_config = load_train_config(args.train_config)
 
     test_examples = load_examples(eval_config.test_split)
@@ -142,13 +154,16 @@ def main(argv: list[str] | None = None) -> None:
             git_commit=_git_commit(),
             dataset_sha256=_file_sha256(Path(eval_config.test_split)),
             prompt_sha256=prompt_used.sha256,
+            execution_backend=backend,
         )
     finally:
         spark.stop()
 
     results_dir = Path(eval_config.results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
-    results_path = results_dir / f"{model_choice}.json"
+    # UC runs get a suffix so they don't overwrite the local results.
+    suffix = "_databricks_uc" if backend == "databricks_uc" else ""
+    results_path = results_dir / f"{model_choice}{suffix}.json"
     results_path.write_text(summary.model_dump_json(indent=2))
     logger.info(
         "model=%s execution_accuracy=%.3f exact_match=%.3f valid_sql=%.3f -> %s",
@@ -164,6 +179,7 @@ def main(argv: list[str] | None = None) -> None:
         mlflow.log_params(
             {
                 "model_name": model_choice,
+                "execution_backend": backend,
                 "git_commit": summary.git_commit,
                 "dataset_sha256": summary.dataset_sha256,
                 "prompt_sha256": summary.prompt_sha256,

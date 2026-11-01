@@ -18,6 +18,15 @@ LABELS = {
 }
 
 
+UC_SUFFIX = "@databricks_uc"
+
+
+def _label(name: str) -> str:
+    base, _, backend = name.partition("@")
+    label = LABELS.get(base, base)
+    return f"{label} [{backend}]" if backend else label
+
+
 def _pct(x: float) -> str:
     return f"{100 * x:.1f}%"
 
@@ -26,11 +35,17 @@ def build_table(results_dir: Path) -> str:
     runs = {}
     for path in results_dir.glob("*.json"):
         data = json.loads(path.read_text())
-        runs[data["model_name"]] = data
+        key = data["model_name"]
+        if data.get("execution_backend") == "databricks_uc":
+            key += UC_SUFFIX
+        runs[key] = data
     if not runs:
         return "_Not yet run._"
 
-    names = [n for n in ORDER if n in runs] + sorted(set(runs) - set(ORDER))
+    names = [n for n in ORDER if n in runs] + [
+        n + UC_SUFFIX for n in ORDER if n + UC_SUFFIX in runs
+    ]
+    names += sorted(set(runs) - set(names))
     n_examples = {runs[n]["n_examples"] for n in names}
     lines = [
         f"Frozen test set, n = {', '.join(str(n) for n in sorted(n_examples))} questions.",
@@ -42,7 +57,7 @@ def build_table(results_dir: Path) -> str:
         r = runs[name]
         o = r["overall"]
         lines.append(
-            f"| {LABELS.get(name, name)} | {_pct(o['execution_accuracy'])} "
+            f"| {_label(name)} | {_pct(o['execution_accuracy'])} "
             f"| {_pct(o['exact_match_rate'])} | {_pct(o['valid_sql_rate'])} "
             f"| {r['latency_p50_ms'] / 1000:.1f}s | {r['latency_p95_ms'] / 1000:.1f}s |"
         )
@@ -52,7 +67,7 @@ def build_table(results_dir: Path) -> str:
         "",
         "Execution accuracy by difficulty tag:",
         "",
-        "| Tag | " + " | ".join(LABELS.get(n, n) for n in names) + " |",
+        "| Tag | " + " | ".join(_label(n) for n in names) + " |",
         "|---|" + "---|" * len(names),
     ]
     for tag in tags:
