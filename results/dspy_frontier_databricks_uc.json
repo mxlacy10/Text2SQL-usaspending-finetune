@@ -1,0 +1,538 @@
+{
+  "model_name": "dspy_frontier",
+  "n_examples": 27,
+  "overall": {
+    "tag": "overall",
+    "n": 27,
+    "execution_accuracy": 0.5925925925925926,
+    "exact_match_rate": 0.2222222222222222,
+    "valid_sql_rate": 1.0
+  },
+  "by_tag": [
+    {
+      "tag": "aggregation",
+      "n": 4,
+      "execution_accuracy": 1.0,
+      "exact_match_rate": 0.25,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "filter_date_fy",
+      "n": 4,
+      "execution_accuracy": 1.0,
+      "exact_match_rate": 1.0,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "join",
+      "n": 3,
+      "execution_accuracy": 0.0,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "nested",
+      "n": 4,
+      "execution_accuracy": 0.75,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "single_table",
+      "n": 4,
+      "execution_accuracy": 0.25,
+      "exact_match_rate": 0.25,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "top_n",
+      "n": 4,
+      "execution_accuracy": 1.0,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "window",
+      "n": 4,
+      "execution_accuracy": 0.0,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 1.0
+    }
+  ],
+  "latency_p50_ms": 1735.9295829955954,
+  "latency_p95_ms": 2455.216125003062,
+  "cost_per_1k_queries_usd": null,
+  "git_commit": "2651691469dcb586410adbf74afe31f42f1c74db",
+  "dataset_sha256": "f004a69bdf9daef8d2311de87864c1eac9abd3f6c665857a07bba719fc78e750",
+  "prompt_sha256": "491c5327850e1db036629416141705b2b15eea3724f3c64c29815534872cfd32",
+  "execution_backend": "databricks_uc",
+  "run_metadata": {
+    "framework": "dspy 3.4.1",
+    "optimizer": "BootstrapFewShot",
+    "program": "results/dspy_frontier_program.json",
+    "instructions_sha256": "02c43bd5b74fa205743d06f66e41ab9fa438d69b9dc0de9bc229ae313c27baac",
+    "model": "gpt-5-chat",
+    "run_date": "2026-11-01"
+  },
+  "records": [
+    {
+      "question": "Which awards have parent PIID 36C10X19A0012?",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "predicted_sql": "SELECT DISTINCT award_id\nFROM award_transactions\nWHERE parent_piid = '36C10X19A0012'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 2731.6101670148782,
+      "prompt_tokens": 21052,
+      "completion_tokens": 37
+    },
+    {
+      "question": "Show all definitive contracts performed in California.",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
+      "predicted_sql": "SELECT *\nFROM award_transactions\nWHERE award_type = 'DEFINITIVE CONTRACT'\n  AND pop_state_code = 'CA'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1523.1467499979772,
+      "prompt_tokens": 21044,
+      "completion_tokens": 38
+    },
+    {
+      "question": "List the PIIDs and action dates for contracts funded by the Department of Defense.",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'",
+      "predicted_sql": "SELECT piid, action_date\nFROM award_transactions\nWHERE funding_agency_name = 'Department of Defense'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1832.560916984221,
+      "prompt_tokens": 21052,
+      "completion_tokens": 35
+    },
+    {
+      "question": "Show transactions with negative federal action obligations.",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0",
+      "predicted_sql": "SELECT\n  transaction_id,\n  award_id,\n  piid,\n  federal_action_obligation\nFROM award_transactions\nWHERE federal_action_obligation < 0",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1913.8985839963425,
+      "prompt_tokens": 21044,
+      "completion_tokens": 46
+    },
+    {
+      "question": "What is the earliest and latest action date for each fiscal year?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year",
+      "predicted_sql": "SELECT\n  fiscal_year,\n  MIN(action_date) AS earliest_action_date,\n  MAX(action_date) AS latest_action_date\nFROM award_transactions\nGROUP BY fiscal_year\nORDER BY fiscal_year",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1539.271916000871,
+      "prompt_tokens": 21049,
+      "completion_tokens": 53
+    },
+    {
+      "question": "What is the average obligation amount for purchase orders?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'",
+      "predicted_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation_amount\nFROM award_transactions\nWHERE award_type = 'PURCHASE ORDER'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1669.8895000154153,
+      "prompt_tokens": 21046,
+      "completion_tokens": 40
+    },
+    {
+      "question": "What is the maximum current total value of award for each award type?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
+      "predicted_sql": "SELECT\n  award_type,\n  MAX(current_total_value_of_award) AS max_current_total_value_of_award\nFROM award_transactions\nGROUP BY award_type\nORDER BY max_current_total_value_of_award DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1735.9295829955954,
+      "prompt_tokens": 21050,
+      "completion_tokens": 57
+    },
+    {
+      "question": "What is the total obligation amount grouped by awarding sub-agency name?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC",
+      "predicted_sql": "SELECT\n  awarding_sub_agency_name,\n  SUM(federal_action_obligation) AS total_obligation_amount\nFROM award_transactions\nGROUP BY awarding_sub_agency_name\nORDER BY total_obligation_amount DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 2455.216125003062,
+      "prompt_tokens": 21050,
+      "completion_tokens": 56
+    },
+    {
+      "question": "What recipient names and obligations are associated with BPA CALL awards in Arizona?",
+      "tags": [
+        "join"
+      ],
+      "gold_sql": "SELECT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'",
+      "predicted_sql": "SELECT\n  recipient_name,\n  federal_action_obligation\nFROM award_transactions\nWHERE award_type = 'BPA CALL'\n  AND pop_state_code = 'AZ'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1511.4326249749865,
+      "prompt_tokens": 21050,
+      "completion_tokens": 47
+    },
+    {
+      "question": "Which awards performed in Washington state were funded by the Department of Veterans Affairs?",
+      "tags": [
+        "join"
+      ],
+      "gold_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'",
+      "predicted_sql": "SELECT\n  award_id,\n  piid,\n  recipient_name,\n  pop_city_name,\n  pop_state_code,\n  funding_agency_name\nFROM award_transactions\nWHERE pop_state_code = 'WA'\n  AND funding_agency_name = 'Department of Veterans Affairs'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 2051.919084013207,
+      "prompt_tokens": 21051,
+      "completion_tokens": 68
+    },
+    {
+      "question": "List recipient names and PIIDs for awards with PSC description related to mobile device products.",
+      "tags": [
+        "join"
+      ],
+      "gold_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description = 'IT AND TELECOM - MOBILE DEVICE PRODUCTS (HARDWARE AND PERPETUAL LICENSE SOFTWARE)'",
+      "predicted_sql": "SELECT recipient_name, piid\nFROM award_transactions\nWHERE psc_description LIKE '%MOBILE DEVICE PRODUCTS%'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1518.1387909979094,
+      "prompt_tokens": 21053,
+      "completion_tokens": 36
+    },
+    {
+      "question": "How many transactions in fiscal year 2022 were awarded to recipients in DC?",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'",
+      "predicted_sql": "SELECT COUNT(*) AS transaction_count\nFROM award_transactions\nWHERE fiscal_year = 2022\n  AND recipient_state_code = 'DC'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1638.6900420184247,
+      "prompt_tokens": 21052,
+      "completion_tokens": 41
+    },
+    {
+      "question": "Retrieve PIIDs and action dates for BPA calls in fiscal year 2022.",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA CALL'",
+      "predicted_sql": "SELECT\n  piid,\n  action_date\nFROM award_transactions\nWHERE fiscal_year = 2022\n  AND award_type = 'BPA CALL'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1581.4934590016492,
+      "prompt_tokens": 21052,
+      "completion_tokens": 45
+    },
+    {
+      "question": "List recipient names and obligations for fiscal year 2022 awards with PSC code DB10.",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'",
+      "predicted_sql": "SELECT\n  recipient_name,\n  federal_action_obligation\nFROM award_transactions\nWHERE fiscal_year = 2022\n  AND psc_code = 'DB10'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1560.7712079945486,
+      "prompt_tokens": 21054,
+      "completion_tokens": 47
+    },
+    {
+      "question": "How many transactions in fiscal year 2023 used NAICS code 811212?",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'",
+      "predicted_sql": "SELECT COUNT(*) AS transaction_count\nFROM award_transactions\nWHERE fiscal_year = 2023\n  AND naics_code = '811212'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1541.2005409889389,
+      "prompt_tokens": 21053,
+      "completion_tokens": 42
+    },
+    {
+      "question": "What are the top 10 recipients by total federal action obligations in fiscal year 2024?",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10",
+      "predicted_sql": "SELECT\n  recipient_name,\n  SUM(federal_action_obligation) AS total_federal_action_obligations\nFROM award_transactions\nWHERE fiscal_year = 2024\nGROUP BY recipient_name\nORDER BY total_federal_action_obligations DESC\nLIMIT 10",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1785.5059590074234,
+      "prompt_tokens": 21055,
+      "completion_tokens": 68
+    },
+    {
+      "question": "Which 15 recipients had the highest total obligations for purchase orders?",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15",
+      "predicted_sql": "SELECT\n  recipient_name,\n  SUM(federal_action_obligation) AS total_obligations\nFROM award_transactions\nWHERE award_type = 'PURCHASE ORDER'\nGROUP BY recipient_name\nORDER BY total_obligations DESC\nLIMIT 15",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1825.4496250010561,
+      "prompt_tokens": 21049,
+      "completion_tokens": 63
+    },
+    {
+      "question": "List the top 5 funding agencies by obligated amount.",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligation DESC LIMIT 5",
+      "predicted_sql": "SELECT\n  funding_agency_name,\n  SUM(federal_action_obligation) AS total_obligated_amount\nFROM award_transactions\nWHERE funding_agency_name IS NOT NULL\nGROUP BY funding_agency_name\nORDER BY total_obligated_amount DESC\nLIMIT 5",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 2095.1694160175975,
+      "prompt_tokens": 21047,
+      "completion_tokens": 69
+    },
+    {
+      "question": "Which 10 recipients received the most obligations from the Department of Defense as funding agency?",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE funding_agency_name = 'Department of Defense' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10",
+      "predicted_sql": "SELECT\n  recipient_name,\n  SUM(federal_action_obligation) AS total_obligations\nFROM award_transactions\nWHERE funding_agency_name = 'Department of Defense'\nGROUP BY recipient_name\nORDER BY total_obligations DESC\nLIMIT 10",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1649.180874985177,
+      "prompt_tokens": 21053,
+      "completion_tokens": 65
+    },
+    {
+      "question": "Which award types had average obligations greater than the overall transaction average?",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type), overall_avg AS (SELECT AVG(federal_action_obligation) AS overall_avg_obligation FROM award_transactions) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.overall_avg_obligation ORDER BY t.avg_obligation DESC",
+      "predicted_sql": "SELECT\n  award_type,\n  AVG(federal_action_obligation) AS avg_obligation\nFROM award_transactions\nGROUP BY award_type\nHAVING AVG(federal_action_obligation) > (\n  SELECT AVG(federal_action_obligation)\n  FROM award_transactions\n)",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 2063.2446669915225,
+      "prompt_tokens": 21049,
+      "completion_tokens": 67
+    },
+    {
+      "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC",
+      "predicted_sql": "SELECT\n  naics_code,\n  COUNT(*) AS transaction_count\nFROM award_transactions\nWHERE naics_code IS NOT NULL\nGROUP BY naics_code\nHAVING COUNT(*) > 1000\nORDER BY transaction_count DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1636.8856659973972,
+      "prompt_tokens": 21051,
+      "completion_tokens": 60
+    },
+    {
+      "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation",
+      "predicted_sql": "SELECT\n  transaction_id,\n  award_type,\n  federal_action_obligation\nFROM award_transactions a\nWHERE federal_action_obligation > (\n  SELECT AVG(b.federal_action_obligation)\n  FROM award_transactions b\n  WHERE b.award_type = a.award_type\n)",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1644.000457978109,
+      "prompt_tokens": 21052,
+      "completion_tokens": 70
+    },
+    {
+      "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC",
+      "predicted_sql": "WITH agency_obligations AS (\n  SELECT\n    funding_agency_name,\n    SUM(federal_action_obligation) AS total_obligations\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n  GROUP BY funding_agency_name\n),\noverall_obligations AS (\n  SELECT\n    SUM(federal_action_obligation) AS overall_total\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n)\nSELECT\n  a.funding_agency_name,\n  a.total_obligations,\n  (a.total_obligations / o.overall_total) * 100 AS obligation_percentage\nFROM agency_obligations a\nCROSS JOIN overall_obligations o\nWHERE (a.total_obligations / o.overall_total) > 0.10\nORDER BY obligation_percentage DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 2450.813958013896,
+      "prompt_tokens": 21053,
+      "completion_tokens": 180
+    },
+    {
+      "question": "Rank recipients by total obligations within each NAICS description.",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients",
+      "predicted_sql": "SELECT\n  naics_description,\n  recipient_name,\n  SUM(federal_action_obligation) AS total_obligations,\n  RANK() OVER (\n    PARTITION BY naics_description\n    ORDER BY SUM(federal_action_obligation) DESC\n  ) AS recipient_rank\nFROM award_transactions\nGROUP BY naics_description, recipient_name",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1659.1560409869999,
+      "prompt_tokens": 21047,
+      "completion_tokens": 83
+    },
+    {
+      "question": "For each state of performance, what were the top 2 cities by total obligations?",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "WITH city_totals AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, ROW_NUMBER() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rn FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM city_totals WHERE rn <= 2",
+      "predicted_sql": "WITH city_totals AS (\n  SELECT\n    pop_state_code,\n    pop_city_name,\n    SUM(federal_action_obligation) AS total_obligations\n  FROM award_transactions\n  WHERE pop_state_code IS NOT NULL\n    AND pop_city_name IS NOT NULL\n  GROUP BY pop_state_code, pop_city_name\n),\nranked_cities AS (\n  SELECT\n    pop_state_code,\n    pop_city_name,\n    total_obligations,\n    ROW_NUMBER() OVER (\n      PARTITION BY pop_state_code\n      ORDER BY total_obligations DESC\n    ) AS rn\n  FROM city_totals\n)\nSELECT\n  pop_state_code,\n  pop_city_name,\n  total_obligations\nFROM ranked_cities\nWHERE rn <= 2\nORDER BY pop_state_code, rn",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 2524.616500013508,
+      "prompt_tokens": 21053,
+      "completion_tokens": 178
+    },
+    {
+      "question": "Find the most recent transaction for each PSC code.",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "WITH ranked_psc AS ( SELECT psc_code, transaction_id, action_date, ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn FROM award_transactions ) SELECT psc_code, transaction_id, action_date FROM ranked_psc WHERE rn = 1",
+      "predicted_sql": "SELECT\n  psc_code,\n  transaction_id,\n  action_date\nFROM (\n  SELECT\n    psc_code,\n    transaction_id,\n    action_date,\n    ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn\n  FROM award_transactions\n  WHERE psc_code IS NOT NULL\n) t\nWHERE rn = 1",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1746.9593750138301,
+      "prompt_tokens": 21046,
+      "completion_tokens": 90
+    },
+    {
+      "question": "Show running totals of obligations by fiscal year ordered by action date.",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions",
+      "predicted_sql": "SELECT\n  fiscal_year,\n  action_date,\n  transaction_id,\n  federal_action_obligation,\n  SUM(federal_action_obligation) OVER (\n    PARTITION BY fiscal_year\n    ORDER BY action_date\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n  ) AS running_total_obligations\nFROM award_transactions\nORDER BY fiscal_year, action_date",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1791.0740000079386,
+      "prompt_tokens": 21049,
+      "completion_tokens": 92
+    }
+  ]
+}

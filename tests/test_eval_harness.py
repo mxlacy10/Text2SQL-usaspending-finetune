@@ -143,6 +143,34 @@ def test_run_eval_cost_is_none_when_pricing_unconfigured(
     assert summary.cost_per_1k_queries_usd is None
 
 
+def test_run_eval_captures_token_usage_and_computes_cost(
+    fake_execute: dict[str, ExecutionResult],
+) -> None:
+    class UsagePredictor(FakePredictor):
+        last_usage = (2000, 100)
+
+    fake_execute["SELECT a"] = ExecutionResult(valid=True, rows=[(1,)])
+    examples = [Example(question="q1", sql="SELECT a", tags=["single_table"], split="test")]
+    config = make_config().model_copy(
+        update={
+            "frontier_input_price_per_1k_usd": 0.001,
+            "frontier_output_price_per_1k_usd": 0.01,
+        }
+    )
+
+    summary = harness_module.run_eval(
+        model_name="fake",
+        examples=examples,
+        predictor=UsagePredictor({"q1": "SELECT a"}),
+        spark=None,
+        config=config,
+    )
+
+    assert summary.records[0].prompt_tokens == 2000
+    assert summary.records[0].completion_tokens == 100
+    assert summary.cost_per_1k_queries_usd == pytest.approx(3.0)
+
+
 def test_run_eval_records_execution_backend(fake_execute: dict[str, ExecutionResult]) -> None:
     fake_execute["SELECT a FROM t"] = ExecutionResult(valid=True, rows=[(1,)])
     examples = [Example(question="q1", sql="SELECT a FROM t", tags=["single_table"], split="test")]

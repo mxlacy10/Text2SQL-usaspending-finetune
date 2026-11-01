@@ -9,12 +9,22 @@ import json
 from pathlib import Path
 from typing import Any
 
-ORDER = ["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"]
+ORDER = [
+    "base_zero_shot",
+    "base_few_shot",
+    "frontier",
+    "dspy_frontier",
+    "finetuned",
+    "finetuned_selfcorrect",
+    "genie",
+]
 LABELS = {
     "base_zero_shot": "Base model, zero-shot",
     "base_few_shot": "Base model, few-shot (schema-RAG)",
     "frontier": "Frontier model, few-shot",
+    "dspy_frontier": "Frontier model via DSPy (BootstrapFewShot)",
     "finetuned": "Fine-tuned (QLoRA), zero-shot",
+    "finetuned_selfcorrect": "Fine-tuned + execute-and-repair (<=2 retries)",
     "genie": "Databricks Genie space",
 }
 COMPARE = ["finetuned", "genie", "frontier"]

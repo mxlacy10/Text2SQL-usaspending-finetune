@@ -6,6 +6,8 @@ Baselines (--model):
   base_zero_shot   base mlx model, zero-shot, no adapter
   base_few_shot    base mlx model, few-shot (k=5) + schema-RAG, no adapter
   frontier         frontier model (Azure AI Foundry), few-shot + schema-RAG
+  dspy_frontier    same frontier model via DSPy with BootstrapFewShot-selected demos
+                   (run scripts/dspy_optimize.py first)
   finetuned        base mlx model + LoRA adapter, zero-shot
   genie            Databricks Genie space (GENIE_SPACE_ID); requires --spark-mode databricks
 
@@ -48,7 +50,9 @@ from t2s.train.config import load_train_config
 
 logger = logging.getLogger(__name__)
 
-ModelChoice = Literal["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"]
+ModelChoice = Literal[
+    "base_zero_shot", "base_few_shot", "frontier", "dspy_frontier", "finetuned", "genie"
+]
 
 
 def _git_commit() -> str:
@@ -100,7 +104,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--model",
         required=True,
-        choices=["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"],
+        choices=[
+            "base_zero_shot",
+            "base_few_shot",
+            "frontier",
+            "dspy_frontier",
+            "finetuned",
+            "genie",
+        ],
     )
     parser.add_argument("--config", default="config/eval.yaml")
     parser.add_argument("--base-config", default="config/base.yaml")
@@ -110,6 +121,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=["local", "databricks"],
         default=None,
         help="Override spark.mode from the base config (never chosen implicitly).",
+    )
+    parser.add_argument(
+        "--self-correct",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Wrap the predictor in an execute-and-repair loop with up to N retries "
+        "(finetuned/frontier only). Results are saved as <model>_selfcorrect.",
     )
     return parser.parse_args(argv)
 
@@ -171,6 +190,36 @@ def main(argv: list[str] | None = None) -> None:
         if backend != "databricks_uc":
             raise RuntimeError("The genie baseline requires --spark-mode databricks.")
         predictor, run_metadata, prompt_sha256 = _build_genie()
+    elif model_choice == "dspy_frontier":
+        if (
+            base_config.models.frontier is None
+            or base_config.models.frontier_azure_endpoint is None
+        ):
+            raise RuntimeError("config.models.frontier and frontier_azure_endpoint must be set.")
+        import dspy
+
+        from t2s.eval.dspy_baseline import DspyPredictor, load_program, make_lm
+
+        program_path = Path("results/dspy_frontier_program.json")
+        if not program_path.exists():
+            raise RuntimeError("Run scripts/dspy_optimize.py first.")
+        instructions = load_prompt("dspy_sql_instructions_v1.md")
+        program = load_program(instructions.text, program_path)
+        predictor = DspyPredictor(
+            program,
+            make_lm(base_config.models.frontier, base_config.models.frontier_azure_endpoint),
+            schema_card,
+        )
+        program_sha = _file_sha256(program_path)
+        prompt_sha256 = program_sha
+        run_metadata = {
+            "framework": f"dspy {dspy.__version__}",
+            "optimizer": "BootstrapFewShot",
+            "program": str(program_path),
+            "instructions_sha256": instructions.sha256,
+            "model": base_config.models.frontier,
+            "run_date": datetime.date.today().isoformat(),
+        }
     else:  # frontier
         if base_config.models.frontier is None:
             raise RuntimeError(
@@ -183,18 +232,44 @@ def main(argv: list[str] | None = None) -> None:
             client, few_shot_prompt.text, schema_card, examples_block
         )
 
+    run_name: str = model_choice
+    if args.self_correct:
+        if model_choice not in ("finetuned", "frontier"):
+            raise RuntimeError("--self-correct supports only finetuned and frontier.")
+        run_name = f"{model_choice}_selfcorrect"
+    repair_prompt = load_prompt("t2s_sql_repair_v1.md")
+
     spark = get_spark_session(base_config)
     try:
         register_silver_tables(spark, base_config)
+        if args.self_correct:
+            from t2s.eval.execute import execute_sql
+            from t2s.eval.self_correct import RepairablePredictor, SelfCorrectingPredictor
+
+            def _validate(sql: str) -> str | None:
+                return execute_sql(spark, sql).error
+
+            assert isinstance(predictor, (MlxZeroShotPredictor, FrontierFewShotPredictor))
+            base: RepairablePredictor = predictor
+            predictor = SelfCorrectingPredictor(
+                base, _validate, repair_prompt.text, max_repairs=args.self_correct
+            )
+            run_metadata = {
+                **(run_metadata or {}),
+                "self_correct_max_repairs": str(args.self_correct),
+                "repair_prompt_sha256": repair_prompt.sha256,
+            }
         summary = run_eval(
-            model_name=model_choice,
+            model_name=run_name,
             examples=test_examples,
             predictor=predictor,
             spark=spark,
             config=eval_config,
             git_commit=_git_commit(),
             dataset_sha256=_file_sha256(Path(eval_config.test_split)),
-            prompt_sha256=prompt_sha256 if model_choice == "genie" else prompt_used.sha256,
+            prompt_sha256=prompt_sha256
+            if model_choice in ("genie", "dspy_frontier")
+            else prompt_used.sha256,
             run_metadata=run_metadata,
             execution_backend=backend,
         )
@@ -205,11 +280,11 @@ def main(argv: list[str] | None = None) -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
     # UC runs get a suffix so they don't overwrite the local results.
     suffix = "_databricks_uc" if backend == "databricks_uc" and model_choice != "genie" else ""
-    results_path = results_dir / f"{model_choice}{suffix}.json"
+    results_path = results_dir / f"{run_name}{suffix}.json"
     results_path.write_text(summary.model_dump_json(indent=2))
     logger.info(
         "model=%s execution_accuracy=%.3f exact_match=%.3f valid_sql=%.3f -> %s",
-        model_choice,
+        run_name,
         summary.overall.execution_accuracy,
         summary.overall.exact_match_rate,
         summary.overall.valid_sql_rate,
@@ -217,10 +292,10 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     init_mlflow(base_config.mlflow)
-    with mlflow.start_run(run_name=f"eval-{model_choice}"):
+    with mlflow.start_run(run_name=f"eval-{run_name}"):
         mlflow.log_params(
             {
-                "model_name": model_choice,
+                "model_name": run_name,
                 "execution_backend": backend,
                 **{k: v for k, v in (run_metadata or {}).items() if v is not None},
                 "git_commit": summary.git_commit,
