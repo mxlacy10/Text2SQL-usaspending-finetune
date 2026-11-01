@@ -1,0 +1,539 @@
+{
+  "model_name": "dspy_frontier_compact",
+  "n_examples": 27,
+  "overall": {
+    "tag": "overall",
+    "n": 27,
+    "execution_accuracy": 0.7037037037037037,
+    "exact_match_rate": 0.25925925925925924,
+    "valid_sql_rate": 0.9629629629629629
+  },
+  "by_tag": [
+    {
+      "tag": "aggregation",
+      "n": 4,
+      "execution_accuracy": 1.0,
+      "exact_match_rate": 0.25,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "filter_date_fy",
+      "n": 4,
+      "execution_accuracy": 1.0,
+      "exact_match_rate": 1.0,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "join",
+      "n": 3,
+      "execution_accuracy": 0.3333333333333333,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "nested",
+      "n": 4,
+      "execution_accuracy": 0.75,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 0.75
+    },
+    {
+      "tag": "single_table",
+      "n": 4,
+      "execution_accuracy": 0.5,
+      "exact_match_rate": 0.5,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "top_n",
+      "n": 4,
+      "execution_accuracy": 1.0,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 1.0
+    },
+    {
+      "tag": "window",
+      "n": 4,
+      "execution_accuracy": 0.25,
+      "exact_match_rate": 0.0,
+      "valid_sql_rate": 1.0
+    }
+  ],
+  "latency_p50_ms": 1470.4578749951907,
+  "latency_p95_ms": 2221.140582987573,
+  "cost_per_1k_queries_usd": null,
+  "git_commit": "39e2b34bada2bc07b1fb4bf5ebcdfc5e1a5e5bd0",
+  "dataset_sha256": "f004a69bdf9daef8d2311de87864c1eac9abd3f6c665857a07bba719fc78e750",
+  "prompt_sha256": "e1562695bb2493b76d0a87fa896c2143d30a5e3a8abc21fe0c44257bd0d08ed6",
+  "execution_backend": "databricks_uc",
+  "run_metadata": {
+    "framework": "dspy 3.4.1",
+    "optimizer": "BootstrapFewShot",
+    "schema_in_demos": "False",
+    "program": "results/dspy_frontier_compact_program.json",
+    "instructions_sha256": "02c43bd5b74fa205743d06f66e41ab9fa438d69b9dc0de9bc229ae313c27baac",
+    "model": "gpt-5-chat",
+    "run_date": "2026-11-01"
+  },
+  "records": [
+    {
+      "question": "Which awards have parent PIID 36C10X19A0012?",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "predicted_sql": "SELECT award_id, piid, parent_piid\nFROM award_transactions\nWHERE parent_piid = '36C10X19A0012'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 2309.462417004397,
+      "prompt_tokens": 4133,
+      "completion_tokens": 43
+    },
+    {
+      "question": "Show all definitive contracts performed in California.",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
+      "predicted_sql": "SELECT *\nFROM award_transactions\nWHERE award_type = 'DEFINITIVE CONTRACT'\n  AND pop_state_code = 'CA'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1329.8537079826929,
+      "prompt_tokens": 4125,
+      "completion_tokens": 38
+    },
+    {
+      "question": "List the PIIDs and action dates for contracts funded by the Department of Defense.",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'",
+      "predicted_sql": "SELECT piid, action_date\nFROM award_transactions\nWHERE funding_agency_name = 'Department of Defense'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1253.3669160038698,
+      "prompt_tokens": 4133,
+      "completion_tokens": 35
+    },
+    {
+      "question": "Show transactions with negative federal action obligations.",
+      "tags": [
+        "single_table"
+      ],
+      "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0",
+      "predicted_sql": "SELECT transaction_id, federal_action_obligation\nFROM award_transactions\nWHERE federal_action_obligation < 0",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1343.5215830104426,
+      "prompt_tokens": 4125,
+      "completion_tokens": 35
+    },
+    {
+      "question": "What is the earliest and latest action date for each fiscal year?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year",
+      "predicted_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date\nFROM award_transactions\nGROUP BY fiscal_year\nORDER BY fiscal_year",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1372.1544169820845,
+      "prompt_tokens": 4130,
+      "completion_tokens": 49
+    },
+    {
+      "question": "What is the average obligation amount for purchase orders?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'",
+      "predicted_sql": "SELECT AVG(federal_action_obligation) AS average_obligation_amount\nFROM award_transactions\nWHERE award_type = 'PURCHASE ORDER'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1439.8737080045976,
+      "prompt_tokens": 4127,
+      "completion_tokens": 40
+    },
+    {
+      "question": "What is the maximum current total value of award for each award type?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
+      "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_current_total_value_of_award\nFROM award_transactions\nGROUP BY award_type\nORDER BY max_current_total_value_of_award DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1314.7438330051955,
+      "prompt_tokens": 4131,
+      "completion_tokens": 54
+    },
+    {
+      "question": "What is the total obligation amount grouped by awarding sub-agency name?",
+      "tags": [
+        "aggregation"
+      ],
+      "gold_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC",
+      "predicted_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation_amount\nFROM award_transactions\nGROUP BY awarding_sub_agency_name\nORDER BY total_obligation_amount DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1541.8221250001807,
+      "prompt_tokens": 4131,
+      "completion_tokens": 53
+    },
+    {
+      "question": "What recipient names and obligations are associated with BPA CALL awards in Arizona?",
+      "tags": [
+        "join"
+      ],
+      "gold_sql": "SELECT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'",
+      "predicted_sql": "SELECT recipient_name, federal_action_obligation\nFROM award_transactions\nWHERE award_type = 'BPA CALL'\n  AND recipient_state_code = 'AZ'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1470.4578749951907,
+      "prompt_tokens": 4131,
+      "completion_tokens": 44
+    },
+    {
+      "question": "Which awards performed in Washington state were funded by the Department of Veterans Affairs?",
+      "tags": [
+        "join"
+      ],
+      "gold_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'",
+      "predicted_sql": "SELECT award_id, piid, recipient_name, federal_action_obligation\nFROM award_transactions\nWHERE pop_state_code = 'WA'\n  AND funding_agency_name = 'Department of Veterans Affairs'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1530.3372079797555,
+      "prompt_tokens": 4132,
+      "completion_tokens": 53
+    },
+    {
+      "question": "List recipient names and PIIDs for awards with PSC description related to mobile device products.",
+      "tags": [
+        "join"
+      ],
+      "gold_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description = 'IT AND TELECOM - MOBILE DEVICE PRODUCTS (HARDWARE AND PERPETUAL LICENSE SOFTWARE)'",
+      "predicted_sql": "SELECT recipient_name, piid\nFROM award_transactions\nWHERE psc_description LIKE '%MOBILE DEVICE PRODUCTS%'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1423.514875001274,
+      "prompt_tokens": 4134,
+      "completion_tokens": 36
+    },
+    {
+      "question": "How many transactions in fiscal year 2022 were awarded to recipients in DC?",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'",
+      "predicted_sql": "SELECT COUNT(*) AS transaction_count\nFROM award_transactions\nWHERE fiscal_year = 2022\n  AND recipient_state_code = 'DC'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1280.5750420084223,
+      "prompt_tokens": 4133,
+      "completion_tokens": 41
+    },
+    {
+      "question": "Retrieve PIIDs and action dates for BPA calls in fiscal year 2022.",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA CALL'",
+      "predicted_sql": "SELECT piid, action_date\nFROM award_transactions\nWHERE fiscal_year = 2022\n  AND award_type = 'BPA CALL'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1239.5954999956302,
+      "prompt_tokens": 4133,
+      "completion_tokens": 42
+    },
+    {
+      "question": "List recipient names and obligations for fiscal year 2022 awards with PSC code DB10.",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'",
+      "predicted_sql": "SELECT recipient_name, federal_action_obligation\nFROM award_transactions\nWHERE fiscal_year = 2022\n  AND psc_code = 'DB10'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1201.7053339804988,
+      "prompt_tokens": 4135,
+      "completion_tokens": 44
+    },
+    {
+      "question": "How many transactions in fiscal year 2023 used NAICS code 811212?",
+      "tags": [
+        "filter_date_fy"
+      ],
+      "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'",
+      "predicted_sql": "SELECT COUNT(*) AS transaction_count\nFROM award_transactions\nWHERE fiscal_year = 2023\n  AND naics_code = '811212'",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": true,
+      "execution_match": true,
+      "latency_ms": 1385.197875002632,
+      "prompt_tokens": 4134,
+      "completion_tokens": 42
+    },
+    {
+      "question": "What are the top 10 recipients by total federal action obligations in fiscal year 2024?",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10",
+      "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_federal_action_obligations\nFROM award_transactions\nWHERE fiscal_year = 2024\nGROUP BY recipient_name\nORDER BY total_federal_action_obligations DESC\nLIMIT 10",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1764.7699580120388,
+      "prompt_tokens": 4136,
+      "completion_tokens": 65
+    },
+    {
+      "question": "Which 15 recipients had the highest total obligations for purchase orders?",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15",
+      "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligations\nFROM award_transactions\nWHERE award_type = 'PURCHASE ORDER'\nGROUP BY recipient_name\nORDER BY total_obligations DESC\nLIMIT 15",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1452.0228749897797,
+      "prompt_tokens": 4130,
+      "completion_tokens": 60
+    },
+    {
+      "question": "List the top 5 funding agencies by obligated amount.",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligation DESC LIMIT 5",
+      "predicted_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligated_amount\nFROM award_transactions\nGROUP BY funding_agency_name\nORDER BY total_obligated_amount DESC\nLIMIT 5",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1657.7339170034975,
+      "prompt_tokens": 4128,
+      "completion_tokens": 57
+    },
+    {
+      "question": "Which 10 recipients received the most obligations from the Department of Defense as funding agency?",
+      "tags": [
+        "top_n"
+      ],
+      "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE funding_agency_name = 'Department of Defense' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10",
+      "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligations\nFROM award_transactions\nWHERE funding_agency_name = 'Department of Defense'\nGROUP BY recipient_name\nORDER BY total_obligations DESC\nLIMIT 10",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1533.5263749875594,
+      "prompt_tokens": 4134,
+      "completion_tokens": 62
+    },
+    {
+      "question": "Which award types had average obligations greater than the overall transaction average?",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type), overall_avg AS (SELECT AVG(federal_action_obligation) AS overall_avg_obligation FROM award_transactions) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.overall_avg_obligation ORDER BY t.avg_obligation DESC",
+      "predicted_sql": "SELECT award_type, AVG(federal_action_obligation) AS average_obligation\nFROM award_transactions\nGROUP BY award_type\nHAVING AVG(federal_action_obligation) > (\n    SELECT AVG(federal_action_obligation)\n    FROM award_transactions\n)\nORDER BY average_obligation DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1619.2911250109319,
+      "prompt_tokens": 4130,
+      "completion_tokens": 71
+    },
+    {
+      "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC",
+      "predicted_sql": "SELECT naics_code, COUNT(*) AS transaction_count\nFROM award_transactions\nGROUP BY naics_code\nHAVING COUNT(*) > 1000\nORDER BY transaction_count DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 1298.1766249868087,
+      "prompt_tokens": 4132,
+      "completion_tokens": 49
+    },
+    {
+      "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation",
+      "predicted_sql": "SELECT transaction_id,\n       award_type,\n       federal_action_obligation\nFROM award_transactions t\nWHERE federal_action_obligation > (\n    SELECT AVG(t2.federal_action_obligation)\n    FROM award_transactions t2\n    WHERE t2.award_type = t.award_type\n)",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 2221.140582987573,
+      "prompt_tokens": 4133,
+      "completion_tokens": 71
+    },
+    {
+      "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+      "tags": [
+        "nested"
+      ],
+      "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC",
+      "predicted_sql": "SELECT funding_agency_name,\n       SUM(federal_action_obligation) AS total_obligations,\n       100.0 * SUM(federal_action_obligation) / SUM(SUM(federal_action_obligation)) OVER () AS percent_of_total_obligations\nFROM award_transactions\nWHERE fiscal_year = 2024\nGROUP BY funding_agency_name\nHAVING 100.0 * SUM(federal_action_obligation) / SUM(SUM(federal_action_obligation)) OVER () > 10\nORDER BY percent_of_total_obligations DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": false,
+      "predicted_error": "[WINDOW_FUNCTION_NOT_ALLOWED_IN_CLAUSE] It is not allowed to use window functions inside HAVING clause. SQLSTATE: 42601\n\nJVM stacktrace:\norg.apache.spark.sql.AnalysisException\n\tat org.apache.spark.sql.errors.QueryCompilationErrors$.windowFunctionNotAllowedError(QueryCompilationErrors.scala:1583)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer$ExtractWindowExpressions$$anonfun$apply$40.applyOrElse(Analyzer.scala:5720)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer$ExtractWindowExpressions$$anonfun$apply$40.applyOrElse(Analyzer.scala:5714)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.$anonfun$resolveOperatorsDownWithPruning$2(AnalysisHelper.scala:208)\n\tat org.apache.spark.sql.catalyst.trees.CurrentOrigin$.withOrigin(origin.scala:142)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.$anonfun$resolveOperatorsDownWithPruning$1(AnalysisHelper.scala:208)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper$.allowInvokingTransformsInAnalyzer(AnalysisHelper.scala:441)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.resolveOperatorsDownWithPruning(AnalysisHelper.scala:206)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.resolveOperatorsDownWithPruning$(AnalysisHelper.scala:202)\n\tat org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.resolveOperatorsDownWithPruning(LogicalPlan.scala:49)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.$anonfun$resolveOperatorsDownWithPruning$4(AnalysisHelper.scala:213)\n\tat org.apache.spark.sql.catalyst.trees.UnaryLike.mapChildren(TreeNode.scala:1654)\n\tat org.apache.spark.sql.catalyst.trees.UnaryLike.mapChildren$(TreeNode.scala:1653)\n\tat org.apache.spark.sql.catalyst.plans.logical.Sort.mapChildren(basicLogicalOperators.scala:1802)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.$anonfun$resolveOperatorsDownWithPruning$1(AnalysisHelper.scala:213)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper$.allowInvokingTransformsInAnalyzer(AnalysisHelper.scala:441)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.resolveOperatorsDownWithPruning(AnalysisHelper.scala:206)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper.resolveOperatorsDownWithPruning$(AnalysisHelper.scala:202)\n\tat org.apache.spark.sql.catalyst.plans.logical.LogicalPlan.resolveOperatorsDownWithPruning(LogicalPlan.scala:49)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer$ExtractWindowExpressions$.apply(Analyzer.scala:5714)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer$ExtractWindowExpressions$.apply(Analyzer.scala:5542)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$18(RuleExecutor.scala:572)\n\tat org.apache.spark.sql.catalyst.rules.RecoverableRuleExecutionHelper.processRule(RuleExecutor.scala:758)\n\tat org.apache.spark.sql.catalyst.rules.RecoverableRuleExecutionHelper.processRule$(RuleExecutor.scala:725)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.processRule(RuleExecutor.scala:156)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$17(RuleExecutor.scala:572)\n\tat com.databricks.spark.util.MemoryTracker$.withThreadAllocatedBytes(MemoryTracker.scala:74)\n\tat org.apache.spark.sql.catalyst.QueryPlanningTracker$.measureRule(QueryPlanningTracker.scala:556)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$16(RuleExecutor.scala:570)\n\tat com.databricks.spark.util.FrameProfiler$.record(FrameProfiler.scala:115)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$15(RuleExecutor.scala:569)\n\tat scala.collection.LinearSeqOps.foldLeft(LinearSeq.scala:183)\n\tat scala.collection.LinearSeqOps.foldLeft$(LinearSeq.scala:179)\n\tat scala.collection.immutable.List.foldLeft(List.scala:79)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$14(RuleExecutor.scala:561)\n\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)\n\tat com.databricks.spark.util.FrameProfiler$.record(FrameProfiler.scala:115)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.executeBatch$1(RuleExecutor.scala:525)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$24(RuleExecutor.scala:697)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$24$adapted(RuleExecutor.scala:697)\n\tat scala.collection.immutable.List.foreach(List.scala:323)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$execute$1(RuleExecutor.scala:697)\n\tat com.databricks.spark.util.FrameProfiler$.record(FrameProfiler.scala:115)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.execute(RuleExecutor.scala:391)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.super$execute(Analyzer.scala:943)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.$anonfun$executeSameContext$2(Analyzer.scala:943)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.runWithSessionConf(Analyzer.scala:914)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.$anonfun$executeSameContext$1(Analyzer.scala:943)\n\tat com.databricks.sql.unity.SAMSnapshotHelper$.visitPlansDuringAnalysis(SAMSnapshotHelper.scala:72)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.executeSameContext(Analyzer.scala:942)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.$anonfun$execute$1(Analyzer.scala:899)\n\tat org.apache.spark.sql.catalyst.analysis.AnalysisContext$.withNewAnalysisContext(Analyzer.scala:653)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.execute(Analyzer.scala:899)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.execute(Analyzer.scala:778)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.$anonfun$executeAndTrack$1(RuleExecutor.scala:379)\n\tat org.apache.spark.sql.catalyst.QueryPlanningTracker$.withTracker(QueryPlanningTracker.scala:306)\n\tat org.apache.spark.sql.catalyst.rules.RuleExecutor.executeAndTrack(RuleExecutor.scala:379)\n\tat org.apache.spark.sql.catalyst.analysis.resolver.HybridAnalyzer.resolveInFixedPoint(HybridAnalyzer.scala:486)\n\tat org.apache.spark.sql.catalyst.analysis.resolver.HybridAnalyzer.$anonfun$apply$1(HybridAnalyzer.scala:102)\n\tat org.apache.spark.sql.catalyst.analysis.resolver.HybridAnalyzer.withTrackedAnalyzerBridgeState(HybridAnalyzer.scala:139)\n\tat org.apache.spark.sql.catalyst.analysis.resolver.HybridAnalyzer.apply(HybridAnalyzer.scala:95)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.runAnalysis$1(Analyzer.scala:841)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.$anonfun$executeAndCheck$3(Analyzer.scala:846)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.runWithSessionConf(Analyzer.scala:914)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.$anonfun$executeAndCheck$2(Analyzer.scala:846)\n\tat org.apache.spark.sql.catalyst.plans.logical.AnalysisHelper$.markInAnalyzer(AnalysisHelper.scala:448)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.$anonfun$executeAndCheck$1(Analyzer.scala:846)\n\tat com.databricks.sql.unity.SAMSnapshotHelper$.visitPlansDuringAnalysis(SAMSnapshotHelper.scala:72)\n\tat org.apache.spark.sql.catalyst.analysis.Analyzer.executeAndCheck(Analyzer.scala:836)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyAnalyzed$7(QueryExecution.scala:1090)\n\tat org.apache.spark.sql.catalyst.QueryPlanningTracker$.measureRule(QueryPlanningTracker.scala:561)\n\tat org.apache.spark.sql.catalyst.QueryPlanningTracker$.recordLatency(QueryPlanningTracker.scala:570)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyAnalyzed$6(QueryExecution.scala:1091)\n\tat com.databricks.spark.util.FrameProfiler$.record(FrameProfiler.scala:115)\n\tat org.apache.spark.sql.catalyst.QueryPlanningTracker.measurePhase(QueryPlanningTracker.scala:1394)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$executePhase$11(QueryExecution.scala:1899)\n\tat org.apache.spark.sql.execution.SQLExecution$.withPreExecutionPhaseTransition(SQLExecution.scala:2170)\n\tat org.apache.spark.sql.execution.SQLExecution$.$anonfun$withExecutionPhase$1(SQLExecution.scala:510)\n\tat com.databricks.util.TracingSpanUtils$.withTracing(TracingSpanUtils.scala:251)\n\tat com.databricks.spark.util.DatabricksTracingHelper.withSpan(DatabricksSparkTracingHelper.scala:290)\n\tat com.databricks.spark.util.DBRTracing$.withSpan(DBRTracing.scala:87)\n\tat org.apache.spark.sql.execution.SQLExecution$.withExecutionPhase(SQLExecution.scala:489)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$executePhase$7(QueryExecution.scala:1899)\n\tat org.apache.spark.sql.execution.QueryExecution$.withInternalError(QueryExecution.scala:2806)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$executePhase$5(QueryExecution.scala:1872)\n\tat com.databricks.util.LexicalThreadLocal$Handle.runWith(LexicalThreadLocal.scala:63)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$executePhase$4(QueryExecution.scala:1869)\n\tat com.databricks.util.LexicalThreadLocal$Handle.runWith(LexicalThreadLocal.scala:63)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$executePhase$3(QueryExecution.scala:1869)\n\tat com.databricks.util.LexicalThreadLocal$Handle.runWith(LexicalThreadLocal.scala:63)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$executePhase$2(QueryExecution.scala:1868)\n\tat com.databricks.sql.history.ultron.PredictionBackendBatching$.$anonfun$withBatchedUpdates$1(ObservationBuffer.scala:484)\n\tat com.databricks.util.LexicalThreadLocal$Handle.runWith(LexicalThreadLocal.scala:63)\n\tat com.databricks.sql.history.ultron.PredictionBackendBatching$.withBatchedUpdates(ObservationBuffer.scala:484)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$withQueryExecutionId$3(QueryExecution.scala:1848)\n\tat com.databricks.util.LexicalThreadLocal$Handle.runWith(LexicalThreadLocal.scala:63)\n\tat org.apache.spark.sql.execution.QueryExecution.localBlock$1(QueryExecution.scala:1847)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$withQueryExecutionId$5(QueryExecution.scala:1859)\n\tat com.databricks.unity.UCSManager$.withTemporaryScope(UCSManager.scala:168)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$withQueryExecutionId$4(QueryExecution.scala:1858)\n\tat org.apache.spark.sql.execution.QueryExecution$.$anonfun$runWithWrappers$2(QueryExecution.scala:3073)\n\tat org.apache.spark.sql.execution.QueryExecution$.org$apache$spark$sql$execution$QueryExecution$$runWithWrappers(QueryExecution.scala:3072)\n\tat org.apache.spark.sql.execution.QueryExecution.withQueryExecutionId(QueryExecution.scala:1859)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$executePhase$1(QueryExecution.scala:1867)\n\tat org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:881)\n\tat org.apache.spark.sql.execution.QueryExecution.executePhase(QueryExecution.scala:1866)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyAnalyzed$5(QueryExecution.scala:1082)\n\tat com.databricks.sql.util.MemoryTrackerHelper.withMemoryTracking(MemoryTrackerHelper.scala:111)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyAnalyzed$2(QueryExecution.scala:1081)\n\tat org.apache.spark.sql.execution.SQLExecution$.withEventV2LifecycleProperties(SQLExecution.scala:1011)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$lazyAnalyzed$1(QueryExecution.scala:1043)\n\tat scala.util.Try$.apply(Try.scala:217)\n\tat org.apache.spark.util.Utils$.doTryWithCallerStacktrace(Utils.scala:1798)\n\tat org.apache.spark.util.Utils$.getTryWithCallerStacktrace(Utils.scala:1848)\n\tat org.apache.spark.util.LazyTry.get(LazyTry.scala:78)\n\tat org.apache.spark.sql.execution.QueryExecution.$anonfun$analyzed$1(QueryExecution.scala:1206)\n\tat org.apache.spark.sql.execution.QueryExecution.withAbortTransactionOnFailure(QueryExecution.scala:2304)\n\tat org.apache.spark.sql.execution.QueryExecution.analyzed(QueryExecution.scala:1206)\n\tat org.apache.spark.sql.execution.QueryExecution.assertAnalyzed(QueryExecution.scala:949)\n\tat org.apache.spark.sql.classic.Dataset$.$anonfun$ofRows$3(Dataset.scala:161)\n\tat org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:881)\n\tat org.apache.spark.sql.classic.SparkSession.$anonfun$withActiveAndFrameProfiler$1(SparkSession.scala:1348)\n\tat com.databricks.spark.util.FrameProfiler$.record(FrameProfiler.scala:115)\n\tat org.apache.spark.sql.classic.SparkSession.withActiveAndFrameProfiler(SparkSession.scala:1348)\n\tat org.apache.spark.sql.classic.Dataset$.ofRows(Dataset.scala:153)\n\tat org.apache.spark.sql.classic.SparkSession.$anonfun$sql$6(SparkSession.scala:1019)\n\tat org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:881)\n\tat org.apache.spark.sql.classic.SparkSession.sql(SparkSession.scala:984)\n\tat org.apache.spark.sql.connect.planner.SparkConnectPlanner.executeSQL(SparkConnectPlanner.scala:4617)\n\tat org.apache.spark.sql.connect.planner.SparkConnectPlanner.handleSqlCommand(SparkConnectPlanner.scala:4397)\n\tat org.apache.spark.sql.connect.planner.SparkConnectPlanner.process(SparkConnectPlanner.scala:3946)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.$anonfun$handleCommand$1(ExecuteThreadRunner.scala:574)\n\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)\n\tat org.apache.spark.sql.execution.SQLExecution$.withPreExecutionPhaseWatch(SQLExecution.scala:2179)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.withPreExecutionPhaseWatch(ExecuteThreadRunner.scala:553)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.handleCommand(ExecuteThreadRunner.scala:574)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.$anonfun$executeInternal$15(ExecuteThreadRunner.scala:442)\n\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)\n\tat com.databricks.util.LexicalThreadLocal$Handle.runWith(LexicalThreadLocal.scala:63)\n\tat org.apache.spark.sql.connect.execution.SparkConnectUdfRejectionScope$.withExecutionSideEffectScope(SparkConnectUdfRejectionScope.scala:31)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.$anonfun$executeInternal$1(ExecuteThreadRunner.scala:441)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.$anonfun$executeInternal$1$adapted(ExecuteThreadRunner.scala:348)\n\tat org.apache.spark.sql.connect.service.SessionHolder.$anonfun$withSession$2(SessionHolder.scala:962)\n\tat org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:881)\n\tat org.apache.spark.sql.connect.service.SessionHolder.$anonfun$withSession$1(SessionHolder.scala:962)\n\tat org.apache.spark.JobArtifactSet$.withActiveJobArtifactState(JobArtifactSet.scala:97)\n\tat org.apache.spark.sql.artifact.ArtifactManager.$anonfun$withResources$1(ArtifactManager.scala:142)\n\tat org.apache.spark.sql.artifact.ArtifactManager.withClassLoaderIfNeeded(ArtifactManager.scala:136)\n\tat org.apache.spark.sql.artifact.ArtifactManager.withResources(ArtifactManager.scala:141)\n\tat org.apache.spark.sql.connect.service.SessionHolder.withSession(SessionHolder.scala:961)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.executeInternal(ExecuteThreadRunner.scala:348)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.$anonfun$execute$1(ExecuteThreadRunner.scala:204)\n\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)\n\tat com.databricks.spark.connect.service.UtilizationMetrics.recordActiveQueries(UtilizationMetrics.scala:102)\n\tat com.databricks.spark.connect.service.UtilizationMetrics.recordActiveQueries$(UtilizationMetrics.scala:99)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.recordActiveQueries(ExecuteThreadRunner.scala:63)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner.org$apache$spark$sql$connect$execution$ExecuteThreadRunner$$execute(ExecuteThreadRunner.scala:196)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner$ExecutionThread.$anonfun$run$3(ExecuteThreadRunner.scala:647)\n\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)\n\tat com.databricks.spark.util.DBRTracing$.withSpanFromParent(DBRTracing.scala:70)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner$ExecutionThread.$anonfun$run$2(ExecuteThreadRunner.scala:647)\n\tat scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)\n\tat com.databricks.unity.UCSEphemeralState$Handle.runWith(UCSEphemeralState.scala:51)\n\tat com.databricks.unity.HandleImpl.runWith(UCSHandle.scala:138)\n\tat com.databricks.unity.HandleImpl.$anonfun$runWithAndClose$1(UCSHandle.scala:147)\n\tat scala.util.Using$.resource(Using.scala:296)\n\tat com.databricks.unity.HandleImpl.runWithAndClose(UCSHandle.scala:146)\n\tat org.apache.spark.sql.connect.execution.ExecuteThreadRunner$ExecutionThread.run(ExecuteThreadRunner.scala:646)",
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1797.9595409997273,
+      "prompt_tokens": 4134,
+      "completion_tokens": 125
+    },
+    {
+      "question": "Rank recipients by total obligations within each NAICS description.",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients",
+      "predicted_sql": "WITH recipient_obligations AS (\n    SELECT\n        naics_description,\n        recipient_name,\n        SUM(federal_action_obligation) AS total_obligations\n    FROM award_transactions\n    GROUP BY naics_description, recipient_name\n)\nSELECT\n    naics_description,\n    recipient_name,\n    total_obligations,\n    RANK() OVER (\n        PARTITION BY naics_description\n        ORDER BY total_obligations DESC\n    ) AS recipient_rank\nFROM recipient_obligations",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1680.6178750121035,
+      "prompt_tokens": 4128,
+      "completion_tokens": 114
+    },
+    {
+      "question": "For each state of performance, what were the top 2 cities by total obligations?",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "WITH city_totals AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, ROW_NUMBER() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rn FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM city_totals WHERE rn <= 2",
+      "predicted_sql": "WITH city_obligations AS (\n    SELECT\n        pop_state_code,\n        pop_city_name,\n        SUM(federal_action_obligation) AS total_obligations\n    FROM award_transactions\n    GROUP BY pop_state_code, pop_city_name\n),\nranked_cities AS (\n    SELECT\n        pop_state_code,\n        pop_city_name,\n        total_obligations,\n        ROW_NUMBER() OVER (\n            PARTITION BY pop_state_code\n            ORDER BY total_obligations DESC\n        ) AS rn\n    FROM city_obligations\n)\nSELECT\n    pop_state_code,\n    pop_city_name,\n    total_obligations\nFROM ranked_cities\nWHERE rn <= 2\nORDER BY pop_state_code, total_obligations DESC",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": true,
+      "latency_ms": 3272.486250003567,
+      "prompt_tokens": 4134,
+      "completion_tokens": 166
+    },
+    {
+      "question": "Find the most recent transaction for each PSC code.",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "WITH ranked_psc AS ( SELECT psc_code, transaction_id, action_date, ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn FROM award_transactions ) SELECT psc_code, transaction_id, action_date FROM ranked_psc WHERE rn = 1",
+      "predicted_sql": "SELECT psc_code, transaction_id, action_date\nFROM (\n  SELECT\n    psc_code,\n    transaction_id,\n    action_date,\n    ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC, transaction_id DESC) AS rn\n  FROM award_transactions\n) t\nWHERE rn = 1",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1776.025250001112,
+      "prompt_tokens": 4127,
+      "completion_tokens": 81
+    },
+    {
+      "question": "Show running totals of obligations by fiscal year ordered by action date.",
+      "tags": [
+        "window"
+      ],
+      "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions",
+      "predicted_sql": "SELECT fiscal_year,\n       action_date,\n       SUM(federal_action_obligation) AS daily_obligations,\n       SUM(SUM(federal_action_obligation)) OVER (\n           PARTITION BY fiscal_year\n           ORDER BY action_date\n           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n       ) AS running_total_obligations\nFROM award_transactions\nGROUP BY fiscal_year, action_date\nORDER BY fiscal_year, action_date",
+      "gold_valid": true,
+      "gold_error": null,
+      "predicted_valid": true,
+      "predicted_error": null,
+      "exact_match": false,
+      "execution_match": false,
+      "latency_ms": 1671.4960829995107,
+      "prompt_tokens": 4130,
+      "completion_tokens": 104
+    }
+  ]
+}

@@ -27,7 +27,6 @@ from t2s.synth.execute import register_silver_tables
 
 logger = logging.getLogger(__name__)
 
-PROGRAM_PATH = Path("results/dspy_frontier_program.json")
 INSTRUCTIONS = "dspy_sql_instructions_v1.md"
 
 
@@ -39,7 +38,17 @@ def main() -> None:
     parser.add_argument("--spark-mode", choices=["local", "databricks"], default=None)
     parser.add_argument("--n-train", type=int, default=40, help="train examples for bootstrapping")
     parser.add_argument("--max-demos", type=int, default=5)
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="Put the schema card once in the instructions instead of in every demo.",
+    )
     args = parser.parse_args()
+    program_path = Path(
+        "results/dspy_frontier_compact_program.json"
+        if args.compact
+        else "results/dspy_frontier_program.json"
+    )
 
     eval_config = load_eval_config(args.config)
     base_config = load_base_config(args.base_config)
@@ -69,14 +78,18 @@ def main() -> None:
 
         import dspy
 
-        program = build_program(load_prompt(INSTRUCTIONS).text)
+        program = build_program(
+            load_prompt(INSTRUCTIONS).text, schema_card if args.compact else None
+        )
         with dspy.context(lm=lm):
-            optimized = optimize(program, train, schema_card, exec_match, args.max_demos)
+            optimized = optimize(
+                program, train, schema_card, exec_match, args.max_demos, args.compact
+            )
     finally:
         spark.stop()
 
-    save_program(optimized, PROGRAM_PATH)
-    logger.info("saved %d demos -> %s", len(optimized.demos), PROGRAM_PATH)
+    save_program(optimized, program_path)
+    logger.info("saved %d demos -> %s", len(optimized.demos), program_path)
 
 
 if __name__ == "__main__":

@@ -283,3 +283,11 @@ locations | 4165 | 4165 | OK
   The hand-built few-shot frontier run scored 19/27; at n=27 the 3-question gap is within noise and DSPy did not
   beat the hand-picked examples here. Not run: LangChain (would be a prompt-framework swap of the same kind).
 - Added optional dependency extra `dspy` (needed for the DSPy baseline), installed in `.venv-dbx` only.
+
+### Post-plan: compact DSPy variant (2026-11-01)
+- Finding: the 21K prompt tokens/query in the first DSPy run came from DSPy repeating the schema card inside
+  each of the 5 few-shot demos. `dspy_frontier_compact` puts the schema once in the instructions
+  (`scripts/dspy_optimize.py --compact`; `--model dspy_frontier_compact`).
+- Same model, optimizer and train subset: EX 19/27 (70.4%), valid SQL 96.3%, p50 1.5s, ~4.1K prompt tokens/query
+  (~5x fewer than 21.1K). Single sampled run at default temperature (gpt-5-chat rejects temperature=0), so the
+  3-question difference vs the non-compact DSPy run (16/27) is within noise at n=27.

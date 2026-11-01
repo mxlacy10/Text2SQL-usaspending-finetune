@@ -51,7 +51,13 @@ from t2s.train.config import load_train_config
 logger = logging.getLogger(__name__)
 
 ModelChoice = Literal[
-    "base_zero_shot", "base_few_shot", "frontier", "dspy_frontier", "finetuned", "genie"
+    "base_zero_shot",
+    "base_few_shot",
+    "frontier",
+    "dspy_frontier",
+    "dspy_frontier_compact",
+    "finetuned",
+    "genie",
 ]
 
 
@@ -109,6 +115,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "base_few_shot",
             "frontier",
             "dspy_frontier",
+            "dspy_frontier_compact",
             "finetuned",
             "genie",
         ],
@@ -190,7 +197,8 @@ def main(argv: list[str] | None = None) -> None:
         if backend != "databricks_uc":
             raise RuntimeError("The genie baseline requires --spark-mode databricks.")
         predictor, run_metadata, prompt_sha256 = _build_genie()
-    elif model_choice == "dspy_frontier":
+    elif model_choice in ("dspy_frontier", "dspy_frontier_compact"):
+        compact = model_choice == "dspy_frontier_compact"
         if (
             base_config.models.frontier is None
             or base_config.models.frontier_azure_endpoint is None
@@ -200,21 +208,23 @@ def main(argv: list[str] | None = None) -> None:
 
         from t2s.eval.dspy_baseline import DspyPredictor, load_program, make_lm
 
-        program_path = Path("results/dspy_frontier_program.json")
+        program_path = Path(f"results/{model_choice}_program.json")
         if not program_path.exists():
             raise RuntimeError("Run scripts/dspy_optimize.py first.")
         instructions = load_prompt("dspy_sql_instructions_v1.md")
-        program = load_program(instructions.text, program_path)
+        program = load_program(instructions.text, program_path, schema_card if compact else None)
         predictor = DspyPredictor(
             program,
             make_lm(base_config.models.frontier, base_config.models.frontier_azure_endpoint),
             schema_card,
+            static_schema=compact,
         )
         program_sha = _file_sha256(program_path)
         prompt_sha256 = program_sha
         run_metadata = {
             "framework": f"dspy {dspy.__version__}",
             "optimizer": "BootstrapFewShot",
+            "schema_in_demos": str(not compact),
             "program": str(program_path),
             "instructions_sha256": instructions.sha256,
             "model": base_config.models.frontier,
@@ -268,7 +278,7 @@ def main(argv: list[str] | None = None) -> None:
             git_commit=_git_commit(),
             dataset_sha256=_file_sha256(Path(eval_config.test_split)),
             prompt_sha256=prompt_sha256
-            if model_choice in ("genie", "dspy_frontier")
+            if model_choice in ("genie", "dspy_frontier", "dspy_frontier_compact")
             else prompt_used.sha256,
             run_metadata=run_metadata,
             execution_backend=backend,
