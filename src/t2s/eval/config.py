@@ -25,6 +25,11 @@ class EvalConfig(BaseModel):
     few_shot_prompt: str
     frontier_input_price_per_1k_usd: float | None = None
     frontier_output_price_per_1k_usd: float | None = None
+    # Secondary LLM-judge metric (EX stays primary). Judge is a model that is not one of
+    # the evaluated baselines.
+    judge_model: str = "databricks:/databricks-gpt-oss-120b"
+    judge_prompt: str = "sql_equivalence_judge_v1.md"
+    judge_preview_rows: int = 5
 
 
 def load_eval_config(path: str | Path = "config/eval.yaml") -> EvalConfig:

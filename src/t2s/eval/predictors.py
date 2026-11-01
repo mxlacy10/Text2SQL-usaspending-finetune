@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import time
-from typing import Protocol
+from typing import Any, Protocol
 
 from t2s.eval.postprocess import clean_sql_output
 from t2s.synth.llm import FrontierClient
@@ -120,3 +120,54 @@ class FrontierFewShotPredictor:
         output = self._client.generate(prompt)
         latency_ms = (time.perf_counter() - start) * 1000
         return clean_sql_output(output), latency_ms
+
+
+_RATE_LIMIT_ERRORS = {"TooManyRequests", "ResourceExhausted"}
+
+
+def extract_genie_sql(message: Any) -> str:
+    """Pull the generated SQL out of a completed Genie message.
+
+    Returns "" (an invalid prediction, never a skip) for an errored message or a
+    text-only answer with no query attachment."""
+    if getattr(message, "error", None) is not None:
+        return ""
+    for attachment in getattr(message, "attachments", None) or []:
+        query = getattr(attachment, "query", None)
+        sql = getattr(query, "query", None) if query is not None else None
+        if sql:
+            return str(sql).strip()
+    return ""
+
+
+class GeniePredictor:
+    """Databricks Genie space. Starts a fresh conversation per question; the SQL
+    Genie generated is returned and executed by our harness (not Genie's own rows).
+    Latency runs from the start call to the completed message, including retries."""
+
+    def __init__(
+        self,
+        genie_api: Any,
+        space_id: str,
+        max_retries: int = 5,
+        base_backoff_s: float = 2.0,
+    ) -> None:
+        self._genie = genie_api
+        self._space_id = space_id
+        self._max_retries = max_retries
+        self._base_backoff_s = base_backoff_s
+
+    def predict(self, question: str) -> tuple[str, float]:
+        start = time.perf_counter()
+        sql = ""
+        for attempt in range(self._max_retries + 1):
+            try:
+                message = self._genie.start_conversation_and_wait(self._space_id, question)
+            except Exception as e:  # noqa: BLE001 - SDK error types are imported lazily
+                if type(e).__name__ in _RATE_LIMIT_ERRORS and attempt < self._max_retries:
+                    time.sleep(self._base_backoff_s * 2**attempt)
+                    continue
+                break
+            sql = extract_genie_sql(message)
+            break
+        return sql, (time.perf_counter() - start) * 1000

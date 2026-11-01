@@ -170,3 +170,15 @@ def test_run_eval_backend_defaults_to_none(fake_execute: dict[str, ExecutionResu
         config=make_config(),
     )
     assert summary.execution_backend is None
+
+
+def test_run_eval_records_run_metadata(fake_execute: dict[str, ExecutionResult]) -> None:
+    summary = harness_module.run_eval(
+        model_name="fake",
+        examples=[],
+        predictor=FakePredictor({}),
+        spark=None,
+        config=make_config(),
+        run_metadata={"genie_space_id": "abc", "prompt_sha256_note": None},
+    )
+    assert summary.run_metadata == {"genie_space_id": "abc", "prompt_sha256_note": None}

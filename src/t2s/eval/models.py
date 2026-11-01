@@ -59,4 +59,6 @@ class EvalSummary(BaseModel):
     prompt_sha256: str | None = None
     # None only for results written before this field existed (all were local runs).
     execution_backend: ExecutionBackend | None = None
+    # Run-specific provenance, e.g. Genie space/warehouse IDs and date.
+    run_metadata: dict[str, str | None] | None = None
     records: list[PredictionRecord]

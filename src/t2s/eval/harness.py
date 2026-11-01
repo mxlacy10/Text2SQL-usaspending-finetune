@@ -101,6 +101,7 @@ def run_eval(
     dataset_sha256: str | None = None,
     prompt_sha256: str | None = None,
     execution_backend: ExecutionBackend | None = None,
+    run_metadata: dict[str, str | None] | None = None,
 ) -> EvalSummary:
     """Run `predictor` over every example, execute + compare, and aggregate."""
     records = [evaluate_example(spark, example, predictor) for example in examples]
@@ -129,5 +130,6 @@ def run_eval(
         dataset_sha256=dataset_sha256,
         prompt_sha256=prompt_sha256,
         execution_backend=execution_backend,
+        run_metadata=run_metadata,
         records=records,
     )
