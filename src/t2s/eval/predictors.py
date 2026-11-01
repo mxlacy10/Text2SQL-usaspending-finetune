@@ -111,6 +111,7 @@ class FrontierFewShotPredictor:
         self._prompt_template = prompt_template
         self._schema_card = schema_card
         self._examples_block = examples_block
+        self.last_usage: tuple[int, int] | None = None
 
     def predict(self, question: str) -> tuple[str, float]:
         prompt = self._prompt_template.format(
@@ -119,6 +120,7 @@ class FrontierFewShotPredictor:
         start = time.perf_counter()
         output = self._client.generate(prompt)
         latency_ms = (time.perf_counter() - start) * 1000
+        self.last_usage = getattr(self._client, "last_usage", None)
         return clean_sql_output(output), latency_ms
 
 

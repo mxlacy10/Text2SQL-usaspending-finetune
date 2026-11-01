@@ -66,6 +66,7 @@ def evaluate_example(
     """Predict SQL for one example, execute both gold and predicted SQL, and
     compare them via execution accuracy + exact match."""
     predicted_sql, latency_ms = predictor.predict(example.question)
+    usage: tuple[int, int] | None = getattr(predictor, "last_usage", None)
 
     gold_result = execute_sql(spark, example.sql)
     pred_result = execute_sql(spark, predicted_sql)
@@ -88,6 +89,8 @@ def evaluate_example(
         exact_match=exact_match(example.sql, predicted_sql),
         execution_match=execution_match,
         latency_ms=latency_ms,
+        prompt_tokens=usage[0] if usage else None,
+        completion_tokens=usage[1] if usage else None,
     )
 
 

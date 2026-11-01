@@ -27,12 +27,15 @@ class OpenAIClient:
             raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
         self._client = openai.OpenAI(api_key=api_key)
         self._model = model
+        self.last_usage: tuple[int, int] | None = None
 
     def generate(self, prompt: str) -> str:
         response = self._client.chat.completions.create(
             model=self._model,
             messages=[{"role": "user", "content": prompt}],
         )
+        usage = response.usage
+        self.last_usage = (usage.prompt_tokens, usage.completion_tokens) if usage else None
         content = response.choices[0].message.content
         return content or ""
 
@@ -48,6 +51,7 @@ class AnthropicClient:
             raise RuntimeError("ANTHROPIC_API_KEY is not set in the environment.")
         self._client = anthropic.Anthropic(api_key=api_key)
         self._model = model
+        self.last_usage: tuple[int, int] | None = None
 
     def generate(self, prompt: str) -> str:
         response = self._client.messages.create(
@@ -55,6 +59,7 @@ class AnthropicClient:
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
         )
+        self.last_usage = (response.usage.input_tokens, response.usage.output_tokens)
         block = response.content[0]
         return block.text if hasattr(block, "text") else ""
 
@@ -77,9 +82,12 @@ class AzureFoundryClient:
         )
         self._client = openai.OpenAI(base_url=endpoint, api_key=token_provider)
         self._model = model
+        self.last_usage: tuple[int, int] | None = None
 
     def generate(self, prompt: str) -> str:
         response = self._client.responses.create(model=self._model, input=prompt)
+        usage = response.usage
+        self.last_usage = (usage.input_tokens, usage.output_tokens) if usage else None
         return response.output_text or ""
 
 
