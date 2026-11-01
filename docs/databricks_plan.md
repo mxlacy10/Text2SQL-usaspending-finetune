@@ -142,3 +142,23 @@ Part B — agent:
 ## Run log
 
 <!-- Agent: append one dated entry per step: what changed, check output, commit SHA, anything that needs the human. -->
+
+### 2026-11-01 — Step 1 (code done; live check BLOCKED) — STOP (human)
+
+- Added `spark.mode: local | databricks` (+ validator: databricks requires `catalog`), lazy
+  Databricks Connect session that runs `USE CATALOG/SCHEMA`, and a no-op `register_silver_tables`
+  in databricks mode. Tests in `tests/test_spark_mode.py` (mocked, no network).
+- Checks: ruff, ruff format, mypy --strict, pytest (80 tests) all pass in the local env.
+- Setup facts: workspace is Free Edition (serverless only, no clusters/warehouses); catalog
+  `workspace`; schema `usaspending` created via CLI. Auth via CLI OAuth profile, set in `.env`
+  (`DATABRICKS_CONFIG_PROFILE`, `DATABRICKS_SERVERLESS_COMPUTE_ID=auto`).
+- **Env split:** `databricks-connect` ships its own `pyspark` and clobbers the real one, and it needs
+  Python 3.12. It lives in a separate venv (`.venv-dbx`, gitignored): `uv venv .venv-dbx --python 3.12`,
+  `uv pip install --python .venv-dbx/bin/python -e . "databricks-connect>=17,<20"`, then
+  `uv pip uninstall pyspark delta-spark` and `uv pip install --reinstall --no-deps databricks-connect==19.3.0`.
+  Consequence for Step 2: local Spark (read) and Connect (write) can't share a process; use the
+  plan's Volume-upload path or a two-process flow.
+- **Blocker (hit twice):** Connect authenticates and reaches the workspace, but every session fails with
+  `SERVERLESS_COMPUTE_EXHAUSTED` (Free Edition serverless quota). Not retrying or falling back to local.
+  Human: check the usage/quota in the workspace, wait for the quota to reset, or provide other compute,
+  then re-run the Step 1 live check with `.venv-dbx` and `spark.mode: databricks`.

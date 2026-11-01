@@ -30,7 +30,12 @@ SILVER_TABLES = [
 
 def register_silver_tables(spark: SparkSession, config: BaseConfig) -> None:
     """Register each silver Delta table as a temp view under its table name,
-    so generated SQL like `SELECT ... FROM award_transactions` just works."""
+    so generated SQL like `SELECT ... FROM award_transactions` just works.
+
+    No-op in databricks mode: the tables already exist in Unity Catalog under the
+    same names and the session's current catalog/schema resolves them."""
+    if config.spark.mode == "databricks":
+        return
     warehouse_dir = Path(config.spark.warehouse_dir)
     for table in SILVER_TABLES:
         df = spark.read.format("delta").load(str(warehouse_dir / table))

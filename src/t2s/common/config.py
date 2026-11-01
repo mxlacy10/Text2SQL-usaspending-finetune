@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 AwardType = Literal["contracts"]
 
@@ -17,6 +17,9 @@ AwardType = Literal["contracts"]
 class SparkSettings(BaseModel):
     app_name: str
     warehouse_dir: str
+    # "local": Delta tables under warehouse_dir. "databricks": Unity Catalog via
+    # Databricks Connect; requires `catalog` to be set.
+    mode: Literal["local", "databricks"] = "local"
 
 
 class DataSettings(BaseModel):
@@ -55,6 +58,12 @@ class BaseConfig(BaseModel):
     mlflow: MLflowSettings
 
     model_config = {"populate_by_name": True}
+
+    @model_validator(mode="after")
+    def _databricks_requires_catalog(self) -> BaseConfig:
+        if self.spark.mode == "databricks" and not self.catalog:
+            raise ValueError("spark.mode=databricks requires `catalog` to be set")
+        return self
 
 
 def load_base_config(path: str | Path = "config/base.yaml") -> BaseConfig:
