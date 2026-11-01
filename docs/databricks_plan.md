@@ -255,3 +255,14 @@ locations | 4165 | 4165 | OK
   (which compares full result sets) scores these as wrong; they stay wrong under EX, which remains the primary metric.
   Per this calibration, judge_equivalent is trustworthy on these cases (16/16), so it can go into the README in Step 6
   as a secondary column with that caveat. The blanket label means no per-case notes were written.
+
+### 2026-11-01 — Step 6 done — STOP (human): diff review and push
+
+- Report logic moved to `src/t2s/eval/report_tables.py` (tested in `tests/test_report_tables.py`); `scripts/report.py`
+  is now a thin entry point. The README results block is generated from `results/*.json` only: Databricks UC table with
+  counts next to percentages, a `judge_equivalent` column (shown only because the human signed off), per-tag EX,
+  a "Fine-tune vs Genie vs frontier" section with the n=27 caveat, and the earlier local-Spark runs labelled by
+  `execution_backend`.
+- README prose updated by hand (not the generated block): status, Limitations (judge checked only on disagreements,
+  Genie space missing `locations`/instructions, frontier re-sampling, Free Edition latency), and "Next phase".
+- Checks: ruff, ruff format, mypy --strict, pytest (100) all pass. Committed locally; not pushed.
