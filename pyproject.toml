@@ -41,3 +41,14 @@ mypy_path = "src"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+# mlx-lm only installs on Apple Silicon. On Linux CI it's absent, so mypy can't
+# resolve it and the platform-specific `type: ignore[misc]` comments in
+# predictors.py look unused. Relax both for that module only.
+[[tool.mypy.overrides]]
+module = ["mlx_lm", "mlx_lm.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["t2s.eval.predictors"]
+warn_unused_ignores = false
