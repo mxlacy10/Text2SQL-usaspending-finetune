@@ -19,19 +19,20 @@ Frozen test set, n = 27 questions. Each run records its `execution_backend`: `da
 | Base model, few-shot (schema-RAG) | 11/27 (40.7%) | 13/27 (48.1%) | 14.8% | 77.8% | 20.3s | 23.9s |
 | Frontier model, few-shot | 19/27 (70.4%) | 25/27 (92.6%) | 25.9% | 100.0% | 1.5s | 3.3s |
 | Fine-tuned (QLoRA), zero-shot | 13/27 (48.1%) | 13/27 (48.1%) | 29.6% | 77.8% | 2.3s | 4.6s |
+| Fine-tuned + execute-and-repair (<=2 retries) | 13/27 (48.1%) | not yet run | 29.6% | 81.5% | 2.7s | 9.1s |
 | Databricks Genie space | 15/27 (55.6%) | 21/27 (77.8%) | 0.0% | 100.0% | 14.0s | 19.0s |
 
 Execution accuracy by difficulty tag:
 
-| Tag | Base model, zero-shot | Base model, few-shot (schema-RAG) | Frontier model, few-shot | Fine-tuned (QLoRA), zero-shot | Databricks Genie space |
-|---|---|---|---|---|---|
-| aggregation | 25.0% (n=4) | 25.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) |
-| filter_date_fy | 0.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) |
-| join | 0.0% (n=3) | 66.7% (n=3) | 33.3% (n=3) | 0.0% (n=3) | 33.3% (n=3) |
-| nested | 25.0% (n=4) | 50.0% (n=4) | 75.0% (n=4) | 50.0% (n=4) | 50.0% (n=4) |
-| single_table | 0.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) |
-| top_n | 0.0% (n=4) | 50.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) |
-| window | 0.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) |
+| Tag | Base model, zero-shot | Base model, few-shot (schema-RAG) | Frontier model, few-shot | Fine-tuned (QLoRA), zero-shot | Fine-tuned + execute-and-repair (<=2 retries) | Databricks Genie space |
+|---|---|---|---|---|---|---|
+| aggregation | 25.0% (n=4) | 25.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) |
+| filter_date_fy | 0.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) |
+| join | 0.0% (n=3) | 66.7% (n=3) | 33.3% (n=3) | 0.0% (n=3) | 0.0% (n=3) | 33.3% (n=3) |
+| nested | 25.0% (n=4) | 50.0% (n=4) | 75.0% (n=4) | 50.0% (n=4) | 50.0% (n=4) | 50.0% (n=4) |
+| single_table | 0.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) |
+| top_n | 0.0% (n=4) | 50.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) |
+| window | 0.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) |
 
 ### Fine-tune vs Genie vs frontier
 
@@ -58,7 +59,7 @@ Kept for parity checks. `base_zero_shot` here was scored before the SQL post-pro
 | Frontier model, few-shot | 18/27 (66.7%) | not yet run | 22.2% | 96.3% | 2.2s | 3.5s |
 | Fine-tuned (QLoRA), zero-shot | 13/27 (48.1%) | not yet run | 29.6% | 77.8% | 2.2s | 4.6s |
 
-Generated from `results/*.json` (git commits: 1b6e4f9, 706d3af, f304243, fbfa1ba). Cost per 1K queries: not yet measured.
+Generated from `results/*.json` (git commits: 1b6e4f9, 706d3af, 91f9446, f304243, fbfa1ba). Cost per 1K queries: not yet measured.
 <!-- RESULTS:END -->
 
 ## Pipeline

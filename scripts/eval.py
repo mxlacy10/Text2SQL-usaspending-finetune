@@ -111,6 +111,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Override spark.mode from the base config (never chosen implicitly).",
     )
+    parser.add_argument(
+        "--self-correct",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Wrap the predictor in an execute-and-repair loop with up to N retries "
+        "(finetuned/frontier only). Results are saved as <model>_selfcorrect.",
+    )
     return parser.parse_args(argv)
 
 
@@ -183,11 +191,35 @@ def main(argv: list[str] | None = None) -> None:
             client, few_shot_prompt.text, schema_card, examples_block
         )
 
+    run_name: str = model_choice
+    if args.self_correct:
+        if model_choice not in ("finetuned", "frontier"):
+            raise RuntimeError("--self-correct supports only finetuned and frontier.")
+        run_name = f"{model_choice}_selfcorrect"
+    repair_prompt = load_prompt("t2s_sql_repair_v1.md")
+
     spark = get_spark_session(base_config)
     try:
         register_silver_tables(spark, base_config)
+        if args.self_correct:
+            from t2s.eval.execute import execute_sql
+            from t2s.eval.self_correct import RepairablePredictor, SelfCorrectingPredictor
+
+            def _validate(sql: str) -> str | None:
+                return execute_sql(spark, sql).error
+
+            assert isinstance(predictor, (MlxZeroShotPredictor, FrontierFewShotPredictor))
+            base: RepairablePredictor = predictor
+            predictor = SelfCorrectingPredictor(
+                base, _validate, repair_prompt.text, max_repairs=args.self_correct
+            )
+            run_metadata = {
+                **(run_metadata or {}),
+                "self_correct_max_repairs": str(args.self_correct),
+                "repair_prompt_sha256": repair_prompt.sha256,
+            }
         summary = run_eval(
-            model_name=model_choice,
+            model_name=run_name,
             examples=test_examples,
             predictor=predictor,
             spark=spark,
@@ -205,11 +237,11 @@ def main(argv: list[str] | None = None) -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
     # UC runs get a suffix so they don't overwrite the local results.
     suffix = "_databricks_uc" if backend == "databricks_uc" and model_choice != "genie" else ""
-    results_path = results_dir / f"{model_choice}{suffix}.json"
+    results_path = results_dir / f"{run_name}{suffix}.json"
     results_path.write_text(summary.model_dump_json(indent=2))
     logger.info(
         "model=%s execution_accuracy=%.3f exact_match=%.3f valid_sql=%.3f -> %s",
-        model_choice,
+        run_name,
         summary.overall.execution_accuracy,
         summary.overall.exact_match_rate,
         summary.overall.valid_sql_rate,
@@ -217,10 +249,10 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     init_mlflow(base_config.mlflow)
-    with mlflow.start_run(run_name=f"eval-{model_choice}"):
+    with mlflow.start_run(run_name=f"eval-{run_name}"):
         mlflow.log_params(
             {
-                "model_name": model_choice,
+                "model_name": run_name,
                 "execution_backend": backend,
                 **{k: v for k, v in (run_metadata or {}).items() if v is not None},
                 "git_commit": summary.git_commit,

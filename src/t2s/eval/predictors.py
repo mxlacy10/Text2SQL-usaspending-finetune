@@ -44,13 +44,9 @@ class MlxZeroShotPredictor:
         self._system_prompt = system_prompt
         self._max_tokens = max_tokens
 
-    def predict(self, question: str) -> tuple[str, float]:
+    def _generate(self, messages: list[dict[str, str]]) -> tuple[str, float]:
         from mlx_lm import generate
 
-        messages = [
-            {"role": "system", "content": self._system_prompt},
-            {"role": "user", "content": question},
-        ]
         prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
         start = time.perf_counter()
         output = generate(
@@ -58,6 +54,26 @@ class MlxZeroShotPredictor:
         )
         latency_ms = (time.perf_counter() - start) * 1000
         return clean_sql_output(output), latency_ms
+
+    def predict(self, question: str) -> tuple[str, float]:
+        return self._generate(
+            [
+                {"role": "system", "content": self._system_prompt},
+                {"role": "user", "content": question},
+            ]
+        )
+
+    def repair(
+        self, question: str, previous_sql: str, error: str, template: str
+    ) -> tuple[str, float]:
+        return self._generate(
+            [
+                {"role": "system", "content": self._system_prompt},
+                {"role": "user", "content": question},
+                {"role": "assistant", "content": previous_sql},
+                {"role": "user", "content": template.format(sql=previous_sql, error=error)},
+            ]
+        )
 
 
 class MlxFewShotPredictor:
@@ -116,6 +132,22 @@ class FrontierFewShotPredictor:
     def predict(self, question: str) -> tuple[str, float]:
         prompt = self._prompt_template.format(
             schema_card=self._schema_card, examples=self._examples_block, question=question
+        )
+        start = time.perf_counter()
+        output = self._client.generate(prompt)
+        latency_ms = (time.perf_counter() - start) * 1000
+        self.last_usage = getattr(self._client, "last_usage", None)
+        return clean_sql_output(output), latency_ms
+
+    def repair(
+        self, question: str, previous_sql: str, error: str, template: str
+    ) -> tuple[str, float]:
+        prompt = (
+            self._prompt_template.format(
+                schema_card=self._schema_card, examples=self._examples_block, question=question
+            )
+            + "\n\n"
+            + template.format(sql=previous_sql, error=error)
         )
         start = time.perf_counter()
         output = self._client.generate(prompt)
