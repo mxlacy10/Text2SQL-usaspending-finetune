@@ -14,3 +14,8 @@ few_shot_prompt: t2s_sql_fewshot_v1.md
 # "not computed" -- AGENTS.md rule 1 forbids fabricating a placeholder price.
 frontier_input_price_per_1k_usd: null
 frontier_output_price_per_1k_usd: null
+# Secondary LLM-judge SQL-equivalence metric (scripts/judge.py). Execution accuracy stays primary.
+# Judge is not one of the evaluated models (frontier baseline is gpt-5-chat).
+judge_model: databricks:/databricks-gpt-oss-120b
+judge_prompt: sql_equivalence_judge_v1.md
+judge_preview_rows: 5

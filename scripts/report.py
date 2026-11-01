@@ -36,6 +36,8 @@ def build_table(results_dir: Path) -> str:
     runs = {}
     for path in results_dir.glob("*.json"):
         data = json.loads(path.read_text())
+        if "model_name" not in data:  # e.g. judge_calibration.json is not an eval run
+            continue
         key = data["model_name"]
         if data.get("execution_backend") == "databricks_uc" and key != "genie":
             key += UC_SUFFIX

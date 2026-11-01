@@ -221,3 +221,28 @@ locations | 4165 | 4165 | OK
 - Notes for the human: the space exposes only `agencies`, `award_transactions`, `recipients`
   (no `locations`) and has no instructions, so `prompt_sha256` is null (reason recorded in the results JSON).
   Genie's SQL is executed by our harness against UC, same EX metric as the other baselines.
+
+### 2026-11-01 — Step 5 code + calibration file done — STOP (human): hand-label disagreements
+
+- Added `src/t2s/eval/judge.py`, `scripts/judge.py`, prompt `src/t2s/common/prompts/sql_equivalence_judge_v1.md`
+  (hash recorded), judge config in `config/eval.yaml`, tests (`tests/test_eval_judge.py`; 96 pass, ruff, mypy clean).
+  `report.py` now skips non-run JSON files.
+- Judge: `databricks:/databricks-gpt-oss-120b` via `mlflow.genai` `make_judge`, run 2026-11-01. It is not one of the
+  evaluated models. Inputs are the question, gold and predicted SQL, and result previews (first 5 rows + row count)
+  from executing both on UC. Predictions were not regenerated; it reads the `*_databricks_uc.json` files plus `genie.json`.
+  The judge never sees the EX verdict. EX stays the primary metric.
+- Output `results/judge_calibration.json` (every record, judge vs EX, 16 disagreements with empty `human_label`).
+
+| run | EX correct | judge equivalent | agreement |
+|---|---|---|---|
+| base_zero_shot | 2/27 | 4/27 | 92.6% |
+| base_few_shot | 11/27 | 13/27 | 92.6% |
+| frontier | 19/27 | 25/27 | 77.8% |
+| finetuned | 13/27 | 13/27 | 100% |
+| genie | 15/27 | 21/27 | 77.8% |
+
+- All 16 disagreements are judge=equivalent / EX=not-equivalent (none the other way); the 3 `join` questions are
+  not among them. Frontier and Genie account for 12 of them, so the judge may favour those runs if wrong.
+  Agent did not label anything.
+- **STOP (human):** fill `human_label` (true = predicted answer is really equivalent) and `human_note` for each entry in
+  `disagreements`, set `human_signoff`, and add a sign-off line here. The judge column stays out of the README until then.

@@ -1,0 +1,1791 @@
+{
+  "judge_model": "databricks:/databricks-gpt-oss-120b",
+  "judge_prompt": "sql_equivalence_judge_v1.md",
+  "judge_prompt_sha256": "4d4d8047cb615deb2be212d93e0ce64b8bd89365e4964de8c7f460d8b97c5b7d",
+  "judge_date": "2026-11-01",
+  "primary_metric": "execution_accuracy (the judge never replaces it)",
+  "human_signoff": null,
+  "runs": {
+    "base_zero_shot": {
+      "source_result_file": "results/base_zero_shot_databricks_uc.json",
+      "source_git_commit": "fbfa1bae66211e9016a125d9ac69a6607a2d6454",
+      "stats": {
+        "n": 27,
+        "n_judged": 27,
+        "ex_correct": 2,
+        "judge_equivalent": 4,
+        "agreement": 0.9259259259259259,
+        "disagreements": 2
+      },
+      "records": [
+        {
+          "question": "Which awards have parent PIID 36C10X19A0012?",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "Both queries filter on the same parent_piid and return the same set of award_id values (16 rows, matching the gold preview). The extra filter on federal_action_obligation does not change the result set as shown, and the missing piid column does not affect answering which awards have the given parent PIID.",
+          "predicted_sql": "SELECT award_id\nFROM award_transactions\nWHERE parent_piid = '36C10X19A0012'\nAND federal_action_obligation IS NOT NULL;",
+          "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'"
+        },
+        {
+          "question": "Show all definitive contracts performed in California.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column error, so it cannot return the same results as the gold query, which successfully selects definitive contracts in California.",
+          "predicted_sql": "SELECT \n    t.amount,\n    t.action_date,\n    a.name AS agency_name,\n    r.first_name,\n    r.last_name,\n    l.state_name AS location_state\nFROM \n    award_transactions t\nJOIN \n    agencies a ON t.funding_agency_id = a.id\nJOIN \n    recipients r ON t.recipient_id = r.id\nJOIN \n    locations l ON t.award_location_id = l.id\nWHERE \n    a.state_name = 'California' AND\n    t.federal_action_obligation IS NOT NULL AND\n    t.disbursement_method = 'Definitive'",
+          "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'"
+        },
+        {
+          "question": "List the PIIDs and action dates for contracts funded by the Department of Defense.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query failed to run (unresolved column error) and even if it ran it uses a different filter (recipient_uniqueness_identifier_type = 'DOD') and selects federal_action_obligation instead of the action_date column, which does not match the gold query's logic or expected results.",
+          "predicted_sql": "SELECT PIID, federal_action_obligation AS action_date FROM award_transactions WHERE recipient_uniqueness_identifier_type = 'DOD' AND recipient_uniqueness_identifier IS NOT NULL;",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'"
+        },
+        {
+          "question": "Show transactions with negative federal action obligations.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query failed to parse, producing an error instead of returning data, so it cannot be equivalent to the gold query that successfully returns rows with negative federal_action_obligation.",
+          "predicted_sql": "SELECT `federal_action_obligation`, `action`, `award_number`, `description`, `obligation`, `fiscal_year`, `obligation_category`\nFROM award_transactions\nWHERE `federal_action_obligation` < 0\nAND `fiscal_year` IN ('FY2018', 'FY2019', 'FY2020')  # Example fiscal years, adjust as needed",
+          "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0"
+        },
+        {
+          "question": "What is the earliest and latest action date for each fiscal year?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query selects the same fiscal_year, minimum and maximum action_date per fiscal year as the gold query. The lack of column aliases and ORDER BY does not affect the returned data, and the result preview matches the gold preview exactly, indicating semantic equivalence.",
+          "predicted_sql": "SELECT fiscal_year, MIN(action_date), MAX(action_date)\nFROM award_transactions\nGROUP BY fiscal_year",
+          "gold_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year"
+        },
+        {
+          "question": "What is the average obligation amount for purchase orders?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query did not run, as indicated by the error preview, so it cannot be confirmed to return the same average obligation as the gold query. Failure to execute means it is not equivalent.",
+          "predicted_sql": "```\nSELECT AVG(federal_action_obligation) AS avg_obligation\nFROM award_transactions\nWHERE award_category = 'Purchase Order'\n```\n\nNote: This query assumes that `award_category` is a column in the `award_transactions` table that distinguishes between different types of awards. If the column name is different, adjust the column name accordingly.",
+          "gold_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'"
+        },
+        {
+          "question": "What is the maximum current total value of award for each award type?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query uses MAX(federal_action_obligation) instead of MAX(current_total_value_of_award), leading to different maximum values per award type as shown in the result previews. Hence it does not return the same answer as the gold query.",
+          "predicted_sql": "SELECT award_type, MAX(federal_action_obligation) as max_award_value\nFROM award_transactions\nGROUP BY award_type",
+          "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC"
+        },
+        {
+          "question": "What is the total obligation amount grouped by awarding sub-agency name?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column (awarding_agency_code) and even if it ran, it joins a separate agencies table and groups by the agency's sub_agency_name instead of the awarding_sub_agency_name directly from award_transactions, which does not match the gold query\u2019s logic or result.",
+          "predicted_sql": "SELECT T2.sub_agency_name, SUM(T1.federal_action_obligation) AS total_obligation\nFROM award_transactions T1\nJOIN agencies T2 ON T1.awarding_agency_code = T2.agency_id\nGROUP BY T2.sub_agency_name",
+          "gold_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC"
+        },
+        {
+          "question": "What recipient names and obligations are associated with BPA CALL awards in Arizona?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails with an unresolved column error (recipient_unique_id) and uses different join keys, state filter, and fiscal year logic compared to the gold query, so it would not return the same results.",
+          "predicted_sql": "SELECT r.recipient_name, a.federal_action_obligation\nFROM award_transactions a\nJOIN recipients r ON a.recipient_unique_id = r.recipient_unique_id\nJOIN agencies ag ON a.funding_agency_unique_id = ag.funding_agency_unique_id\nJOIN locations l ON a.funding_location_unique_id = l.funding_location_unique_id\nWHERE a.award_category = 'BPA CALL' AND l.state = 'Arizona' AND a.fiscal_year = YEAR(a.action_date) - 1\nAND a.federal_action_obligation IS NOT NULL;",
+          "gold_sql": "SELECT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'"
+        },
+        {
+          "question": "Which awards performed in Washington state were funded by the Department of Veterans Affairs?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query failed to parse, as indicated by the error preview, so it cannot produce the same answer as the gold query.",
+          "predicted_sql": "SELECT DISTINCT aw.`federal_agency`, aw.`federal_action_obligation`, aw.`obligation`, aw.`action_date`, aw.`action_type`, aw.`funding_agency`, aw.`funding_agency_name`, aw.`funding_agency_type`, aw.`funding_agency_type_name`, aw.`funding_agency_country`, aw.`funding_agency_country_name`, aw.`funding_agency_country_type`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding_agency_country_type_name`, aw.`funding",
+          "gold_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'"
+        },
+        {
+          "question": "List recipient names and PIIDs for awards with PSC description related to mobile device products.",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to unresolved columns (recipient_unique_id and piid in the recipients table) and includes an unrelated fiscal_year filter, so it cannot return the same result as the gold query.",
+          "predicted_sql": "SELECT r.recipient_name, r.piid\nFROM recipients r\nJOIN award_transactions at ON r.recipient_unique_id = at.recipient_unique_id\nWHERE at.psc_description LIKE '%mobile device products%' AND at.fiscal_year = federal_action_obligation.fiscal_year",
+          "gold_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description = 'IT AND TELECOM - MOBILE DEVICE PRODUCTS (HARDWARE AND PERPETUAL LICENSE SOFTWARE)'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2022 were awarded to recipients in DC?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query did not execute successfully (error due to unresolved column 'recipients'), so it cannot return the same answer as the gold query, which runs correctly and returns a count of transactions for FY 2022 in DC.",
+          "predicted_sql": "SELECT COUNT(*) FROM award_transactions AT2022 WHERE recipients LIKE '%DC%'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'"
+        },
+        {
+          "question": "Retrieve PIIDs and action dates for BPA calls in fiscal year 2022.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column (federal_action_code), whereas the gold query runs and returns PIIDs and action dates for BPA calls in FY2022. Since the predicted query does not produce a result, it cannot be semantically equivalent.",
+          "predicted_sql": "SELECT PIID, federal_action_obligation AS action_date\nFROM award_transactions\nWHERE fiscal_year = 'FY22'\nAND federal_action_code = 'BPA';",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA CALL'"
+        },
+        {
+          "question": "List recipient names and obligations for fiscal year 2022 awards with PSC code DB10.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails with an unresolved column error, indicating it cannot run and does not produce the same result as the gold query. Therefore it is not semantically equivalent.",
+          "predicted_sql": "SELECT r.recipient_name, a.federal_action_obligation\nFROM award_transactions a\nJOIN recipients r ON a.recipient_unique_id = r.recipient_unique_id\nJOIN agencies ag ON a.funding_agency_unique_id = ag.funding_agency_unique_id\nWHERE a.fiscal_year = 'FY22' AND ag.psc_code = 'DB10';",
+          "gold_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2023 used NAICS code 811212?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query produced a parsing error and did not execute, whereas the gold query runs successfully and returns a count. Since the predicted query failed to run, it cannot be considered semantically equivalent.",
+          "predicted_sql": "SELECT COUNT(*)\nFROM award_transactions AT\nJOIN award_transactions_at federal_action_obligation af ON AT.federal_action_obligation_id = af.federal_action_obligation_id\nJOIN award_transactions_at award_value av ON AT.award_id = av.award_id\nJOIN award_transactions_at award_total_value atv ON AT.federal_action_obligation_id = atv.federal_action_obligation_id\nWHERE AT.fiscal_year = 'FY23' AND AT.naics_code = '811212'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'"
+        },
+        {
+          "question": "What are the top 10 recipients by total federal action obligations in fiscal year 2024?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column (`recipient_unique_id` does not exist in the award_transactions table), as indicated by the error preview. Because it does not produce a result, it cannot be considered semantically equivalent to the gold query, which runs correctly and returns the top 10 recipients.",
+          "predicted_sql": "SELECT r.recipient_name, SUM(at.federal_action_obligation) AS total_obligation\nFROM award_transactions at\nJOIN recipients r ON at.recipient_unique_id = r.recipient_unique_id\nWHERE at.fiscal_year = 'FY24'\nGROUP BY r.recipient_name\nORDER BY total_obligation DESC\nLIMIT 10;",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which 15 recipients had the highest total obligations for purchase orders?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to execute (unresolved column error) and also differs in filters (transaction_type and fiscal_year) and join logic compared to the gold query, so it would not return the same result set.",
+          "predicted_sql": "SELECT r.recipient_name, SUM(at.federal_action_obligation) AS total_obligation\nFROM award_transactions at\nJOIN recipients r ON at.recipient_unique_id = r.recipient_unique_id\nWHERE at.transaction_type = 'Purchase Order' AND at.fiscal_year >= 'FY2010'\nGROUP BY r.recipient_name\nORDER BY total_obligation DESC\nLIMIT 15;",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15"
+        },
+        {
+          "question": "List the top 5 funding agencies by obligated amount.",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run (unresolved column `award_transactions`.`funding_agency_id`) and therefore cannot return the same top\u20115 funding agencies by obligated amount as the gold query, which successfully aggregates by `funding_agency_name`.",
+          "predicted_sql": "SELECT agency_id, agency_name, SUM(federal_action_obligation) AS obligated_amount FROM award_transactions JOIN agencies ON award_transactions.funding_agency_id = agencies.id GROUP BY agency_id, agency_name ORDER BY obligated_amount DESC LIMIT 5",
+          "gold_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligation DESC LIMIT 5"
+        },
+        {
+          "question": "Which 10 recipients received the most obligations from the Department of Defense as funding agency?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column (funding_agency_identifier) and also uses different filters (agency office_code and fiscal_year) compared to the gold query, which directly filters on funding_agency_name without a year constraint. Therefore it is not semantically equivalent to the gold query.",
+          "predicted_sql": "SELECT r.recipient_name, SUM(at.federal_action_obligation) AS total_obligation\nFROM award_transactions at\nJOIN agencies ag ON at.funding_agency_identifier = ag.unique_agency_identifier\nJOIN recipients r ON at.recipient_unique_id = r.recipient_unique_id\nWHERE ag.office_code = '12' AND at.fiscal_year = 2022\nGROUP BY r.recipient_name\nORDER BY total_obligation DESC\nLIMIT 10;",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE funding_agency_name = 'Department of Defense' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which award types had average obligations greater than the overall transaction average?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the average federal_action_obligation per award_type and filters with a HAVING clause that requires the average to exceed the overall average, which matches the gold query's logic of comparing each type's average to the overall average. Both produce the same single result row, and differences in syntax (CTE vs HAVING, missing ORDER BY) do not affect the answer.",
+          "predicted_sql": "SELECT award_type, AVG(federal_action_obligation) AS avg_obligation\nFROM award_transactions\nGROUP BY award_type\nHAVING AVG(federal_action_obligation) > (\n    SELECT AVG(federal_action_obligation)\n    FROM award_transactions\n)",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type), overall_avg AS (SELECT AVG(federal_action_obligation) AS overall_avg_obligation FROM award_transactions) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.overall_avg_obligation ORDER BY t.avg_obligation DESC"
+        },
+        {
+          "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "Both queries count transactions per NAICS code and filter for counts greater than 1000, yielding the same set of 54 NAICS codes. The predicted query lacks an ORDER BY clause, but ordering is not required for equivalence, and the result previews show the same number of rows with overlapping values, confirming semantic equivalence.",
+          "predicted_sql": "SELECT naics_code, COUNT(*) as transaction_count\nFROM award_transactions\nGROUP BY naics_code\nHAVING COUNT(*) > 1000",
+          "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC"
+        },
+        {
+          "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query did not execute successfully\u2014it raised an unresolved column error\u2014so it cannot return the same answer as the gold query. A failing query cannot be equivalent to the correct gold query.",
+          "predicted_sql": "SELECT award_id, contract_number, AVG(federal_action_obligation) OVER (PARTITION BY award_id) AS avg_obligation\nFROM award_transactions\nWHERE federal_action_code = 'A'",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation"
+        },
+        {
+          "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query failed to run (unresolved column awarding_agency_id) and even if it ran it uses awarding agency instead of funding agency and compares each agency's sum to 10% of the maximum single transaction rather than 10% of the grand total, so it does not answer the same question as the gold query.",
+          "predicted_sql": "SELECT agency.name, SUM(federal_action_obligation) AS total_obligated_amount\nFROM award_transactions AT\nJOIN agencies agency ON AT.awarding_agency_id = agency.id\nWHERE AT.fiscal_year = 'FY2024'\nGROUP BY agency.name\nHAVING SUM(federal_action_obligation) > (SELECT federal_action_obligation * 0.1 FROM award_transactions WHERE fiscal_year = 'FY2024' GROUP BY fiscal_year ORDER BY federal_action_obligation DESC LIMIT 1)",
+          "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC"
+        },
+        {
+          "question": "Rank recipients by total obligations within each NAICS description.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query produced an execution error (unresolved column funding_agency_unique_id), so it did not return any results. Since it fails to run, it cannot be semantically equivalent to the gold query that successfully ranks recipients by NAICS description.",
+          "predicted_sql": "SELECT \n    t.recipient_unique_id,\n    t.fiscal_year,\n    t.federal_action_obligation AS total_obligation,\n    t.ultimate_parent_unique_id,\n    t.ultimate_parent_description,\n    t.ultimate_parent_unique_id AS naics_code,\n    t.ultimate_parent_description AS naics_description\nFROM \n    award_transactions t\nJOIN \n    agencies a ON t.funding_agency_unique_id = a.funding_agency_unique_id\nJOIN \n    recipients r ON t.recipient_unique_id = r.recipient_unique_id\nJOIN \n    locations l ON t.location_unique_id = l.location_unique_id\nWHERE \n    t.fiscal_year >= 'FY2019' AND t.fiscal_year <= 'FY2022'\nGROUP BY \n    t.recipient_unique_id,\n    t.fiscal_year,\n    t.federal_action_obligation,\n    t.ultimate_parent_unique_id,\n    t.ultimate_parent_description,\n    t.ultimate_parent_unique_id,\n    t.ultimate_parent_description,\n    t.ultimate_parent_description\nORDER BY \n    total_obligation DESC;",
+          "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients"
+        },
+        {
+          "question": "For each state of performance, what were the top 2 cities by total obligations?",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column reference, as shown in the error preview. Since it does not produce any result, it cannot be semantically equivalent to the gold query, which successfully computes the top two cities per state by total obligations.",
+          "predicted_sql": "SELECT l.city, l.state, SUM(at.federal_action_obligation) as total_obligation\nFROM award_transactions at\nJOIN locations l ON at.funding_agency_identifier = l.funding_agency_identifier AND at.funding_agency_transaction_id = l.funding_agency_transaction_id\nJOIN agencies ag ON at.funding_agency_identifier = ag.funding_agency_identifier\nWHERE l.state IS NOT NULL\nGROUP BY l.city, l.state\nORDER BY total_obligation DESC\nLIMIT 2",
+          "gold_sql": "WITH city_totals AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, ROW_NUMBER() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rn FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM city_totals WHERE rn <= 2"
+        },
+        {
+          "question": "Find the most recent transaction for each PSC code.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column (transaction_unique_id) and does not implement the logic of selecting the most recent transaction by action_date per PSC code. The gold query uses row_number over action_date to pick the latest transaction, which the predicted query does not match.",
+          "predicted_sql": "SELECT PSC_code, MAX(fiscal_year), MAX(transaction_unique_id)\nFROM award_transactions\nGROUP BY PSC_code",
+          "gold_sql": "WITH ranked_psc AS ( SELECT psc_code, transaction_id, action_date, ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn FROM award_transactions ) SELECT psc_code, transaction_id, action_date FROM ranked_psc WHERE rn = 1"
+        },
+        {
+          "question": "Show running totals of obligations by fiscal year ordered by action date.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an undefined action_date column and, even if corrected, it only aggregates by fiscal year without computing a running total ordered by action date. This does not match the gold query's windowed running total per fiscal year.",
+          "predicted_sql": "SELECT fiscal_year, SUM(federal_action_obligation) AS total_obligated_amount\nFROM award_transactions\nGROUP BY fiscal_year\nORDER BY action_date",
+          "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions"
+        }
+      ]
+    },
+    "base_few_shot": {
+      "source_result_file": "results/base_few_shot_databricks_uc.json",
+      "source_git_commit": "fbfa1bae66211e9016a125d9ac69a6607a2d6454",
+      "stats": {
+        "n": 27,
+        "n_judged": 27,
+        "ex_correct": 11,
+        "judge_equivalent": 13,
+        "agreement": 0.9259259259259259,
+        "disagreements": 2
+      },
+      "records": [
+        {
+          "question": "Which awards have parent PIID 36C10X19A0012?",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query filters on the same parent_piid value and returns the award_id column identical to the gold query, merely adding extra columns (transaction_id and parent_piid). Since the core answer\u2014the awards with the specified parent PIID\u2014is present and matches the gold result preview, the queries are semantically equivalent.",
+          "predicted_sql": "SELECT transaction_id, award_id, parent_piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+          "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'"
+        },
+        {
+          "question": "Show all definitive contracts performed in California.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query selects the award_type column and filters on recipient_state_code, while the gold query selects recipient_name and filters on pop_state_code. The result previews differ in both column values and row counts, indicating the queries would return different answers.",
+          "predicted_sql": "SELECT transaction_id, award_type FROM award_transactions WHERE recipient_state_code = 'CA' AND award_type = 'DEFINITIVE CONTRACT'",
+          "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'"
+        },
+        {
+          "question": "List the PIIDs and action dates for contracts funded by the Department of Defense.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query returns zero rows, while the gold query returns two rows; it also joins on the awarding agency and filters agency_role='funding' rather than using the funding_agency_name field, so it does not produce the same answer.",
+          "predicted_sql": "SELECT DISTINCT piid, action_date FROM award_transactions JOIN agencies ON award_transactions.awarding_agency_name = agencies.agency_name WHERE agencies.agency_role = 'funding' AND agencies.agency_name = 'Department of Defense'",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'"
+        },
+        {
+          "question": "Show transactions with negative federal action obligations.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL exactly matches the gold SQL, filtering award_transactions for federal_action_obligation < 0 and selecting the same columns. The result preview is identical, confirming the queries would return the same rows.",
+          "predicted_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0",
+          "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0"
+        },
+        {
+          "question": "What is the earliest and latest action date for each fiscal year?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query groups by awarding_agency_name and awarding_sub_agency_name in addition to fiscal_year, producing results per agency/sub\u2011agency rather than a single row per fiscal year as required. The result preview shows agency columns, unlike the gold preview which has only fiscal_year rows, so the answers are not semantically equivalent.",
+          "predicted_sql": "SELECT awarding_agency_name, awarding_sub_agency_name, fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY awarding_agency_name, awarding_sub_agency_name, fiscal_year",
+          "gold_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year"
+        },
+        {
+          "question": "What is the average obligation amount for purchase orders?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query only differs in the column alias name (average_obligation vs. avg_obligation), which does not affect the result. Both queries filter on award_type = 'PURCHASE ORDER' and compute the same AVG(federal_action_obligation), and the result preview matches the gold preview.",
+          "predicted_sql": "SELECT AVG(federal_action_obligation) AS average_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'",
+          "gold_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'"
+        },
+        {
+          "question": "What is the maximum current total value of award for each award type?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "Both queries group by award_type and compute MAX(current_total_value_of_award), yielding identical per\u2011type maximum values. The gold query only adds an ORDER BY clause and uses a different alias, which does not affect the returned data. The result previews contain the same values for each award type, confirming semantic equivalence.",
+          "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_current_total_value FROM award_transactions GROUP BY award_type",
+          "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC"
+        },
+        {
+          "question": "What is the total obligation amount grouped by awarding sub-agency name?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query adds a filter on fiscal_year = YEAR(CURRENT_DATE), which the gold query does not have, changing the result set. The result preview shows 0 rows versus the gold preview showing a total, confirming the outputs differ.",
+          "predicted_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = YEAR(CURRENT_DATE) GROUP BY awarding_sub_agency_name",
+          "gold_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC"
+        },
+        {
+          "question": "What recipient names and obligations are associated with BPA CALL awards in Arizona?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query returned the same 368 rows with identical first five records as the gold query, demonstrating that it yields the same recipient names and obligations for BPA CALL awards in Arizona. Despite using a different table reference for the state filter, the result preview matches, so the queries are semantically equivalent.",
+          "predicted_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE award_type = 'BPA CALL' AND recipient_state_code = 'AZ'",
+          "gold_sql": "SELECT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'"
+        },
+        {
+          "question": "Which awards performed in Washington state were funded by the Department of Veterans Affairs?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query selects transaction_id and award_type filtered by recipient state and awarding agency, while the gold query selects award_id and performance city filtered by performance location and funding agency. Different columns, filters, and join logic produce different result sets (different row counts and values), so they are not semantically equivalent.",
+          "predicted_sql": "SELECT a.transaction_id, a.award_type FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei JOIN agencies ag ON a.awarding_agency_name = ag.agency_name AND a.awarding_sub_agency_name = ag.sub_agency_name WHERE r.recipient_state_code = 'WA' AND ag.agency_name = 'Department of Veterans Affairs'",
+          "gold_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'"
+        },
+        {
+          "question": "List recipient names and PIIDs for awards with PSC description related to mobile device products.",
+          "tags": [
+            "join"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "Both queries return the same 59 rows (the preview shows identical rows, just in a different order) and thus answer the question equivalently. The difference in filter syntax (LIKE vs. exact equality) does not affect the result set as demonstrated by the previews.",
+          "predicted_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description LIKE '%MOBILE DEVICE PRODUCTS%'",
+          "gold_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description = 'IT AND TELECOM - MOBILE DEVICE PRODUCTS (HARDWARE AND PERPETUAL LICENSE SOFTWARE)'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2022 were awarded to recipients in DC?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query returns the list of transaction IDs (787 rows) rather than aggregating to a single count value as the gold query does. The question asks for the number of transactions, which requires a COUNT(*) result; therefore the queries are not semantically equivalent.",
+          "predicted_sql": "SELECT transaction_id FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'"
+        },
+        {
+          "question": "Retrieve PIIDs and action dates for BPA calls in fiscal year 2022.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query adds an extra filter action_date IS NOT NULL, but the result preview shows the same 6528 rows and identical sample rows as the gold query, indicating no rows were excluded. Therefore it returns the same PIIDs and action dates for BPA calls in FY2022.",
+          "predicted_sql": "SELECT piid, action_date FROM award_transactions WHERE action_date IS NOT NULL AND fiscal_year = 2022 AND award_type = 'BPA CALL'",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA CALL'"
+        },
+        {
+          "question": "List recipient names and obligations for fiscal year 2022 awards with PSC code DB10.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query is exactly the same as the gold query, selecting recipient_name and federal_action_obligation for fiscal_year 2022 with psc_code 'DB10'. The result preview matches the gold preview, confirming identical output.",
+          "predicted_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'",
+          "gold_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2023 used NAICS code 811212?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL exactly matches the gold SQL, and the result preview (80 transactions) is identical, indicating it would return the same answer.",
+          "predicted_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'"
+        },
+        {
+          "question": "What are the top 10 recipients by total federal action obligations in fiscal year 2024?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the same SUM of federal_action_obligation per recipient for fiscal_year 2024, groups, orders descending, and limits to 10 rows, identical to the gold query. The previewed results match the gold preview, confirming semantic equivalence.",
+          "predicted_sql": "WITH recipient_totals AS (SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10) SELECT recipient_name, total_obligation FROM recipient_totals",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which 15 recipients had the highest total obligations for purchase orders?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query is identical to the gold query in terms of filters, aggregation, grouping, ordering, and limit. The result preview matches the gold preview, indicating it would return the same top 15 recipients by total obligations for purchase orders.",
+          "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15"
+        },
+        {
+          "question": "List the top 5 funding agencies by obligated amount.",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column reference (f.funding_agency_name), as shown in the error preview. Since it does not produce a result, it cannot be semantically equivalent to the gold query, which runs successfully and returns the top 5 funding agencies by obligated amount.",
+          "predicted_sql": "SELECT f.funding_agency_name, SUM(a.federal_action_obligation) AS obligated_amount FROM award_transactions a JOIN agencies f ON a.awarding_agency_name = f.agency_name AND a.awarding_sub_agency_name = f.sub_agency_name WHERE f.agency_role = 'funding' GROUP BY f.funding_agency_name ORDER BY obligated_amount DESC LIMIT 5",
+          "gold_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligation DESC LIMIT 5"
+        },
+        {
+          "question": "Which 10 recipients received the most obligations from the Department of Defense as funding agency?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query joins to the agencies table and requires agency_role = 'funding', which differs from the gold query that simply filters on funding_agency_name. The preview shows the predicted query returned 0 rows, while the gold query returned data, indicating the results are not the same.",
+          "predicted_sql": "SELECT r.recipient_name, SUM(a.federal_action_obligation) AS total_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei JOIN agencies ag ON a.awarding_agency_name = ag.agency_name AND a.awarding_sub_agency_name = ag.sub_agency_name WHERE ag.agency_name = 'Department of Defense' AND ag.agency_role = 'funding' GROUP BY r.recipient_name ORDER BY total_obligation DESC LIMIT 10",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE funding_agency_name = 'Department of Defense' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which award types had average obligations greater than the overall transaction average?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query calculates the average obligation per award_type and filters with a HAVING clause using the overall average from a subquery, which is logically identical to the gold query's CTE approach. Both queries return the same award type(s) with averages greater than the overall average, as confirmed by matching result previews.",
+          "predicted_sql": "SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type HAVING AVG(federal_action_obligation) > (SELECT AVG(federal_action_obligation) FROM award_transactions)",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type), overall_avg AS (SELECT AVG(federal_action_obligation) AS overall_avg_obligation FROM award_transactions) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.overall_avg_obligation ORDER BY t.avg_obligation DESC"
+        },
+        {
+          "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses the same GROUP BY and HAVING logic as the gold query, producing identical counts and ordering. The result preview matches the gold preview, confirming semantic equivalence.",
+          "predicted_sql": "SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code HAVING COUNT(*) > 1000 ORDER BY transaction_count DESC",
+          "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC"
+        },
+        {
+          "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query references an undefined alias `t` in the subquery, causing an execution error as shown in the preview. Since it does not run, it cannot return the same result as the gold query.",
+          "predicted_sql": "SELECT transaction_id, award_type, federal_action_obligation FROM award_transactions WHERE federal_action_obligation > (SELECT AVG(federal_action_obligation) FROM award_transactions WHERE award_type = t.award_type)",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation"
+        },
+        {
+          "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column reference, as shown by the error preview. Since it does not produce any result, it cannot be semantically equivalent to the gold query which returns the correct agencies.",
+          "predicted_sql": "SELECT f.funding_agency_name, SUM(a.federal_action_obligation) AS total_obligation FROM award_transactions a JOIN agencies f ON a.awarding_agency_name = f.agency_name WHERE a.fiscal_year = 2024 GROUP BY f.funding_agency_name HAVING SUM(a.federal_action_obligation) > (SELECT SUM(federal_action_obligation) FROM award_transactions WHERE fiscal_year = 2024) * 0.10",
+          "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC"
+        },
+        {
+          "question": "Rank recipients by total obligations within each NAICS description.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run because the `naics` table is not found, producing an error preview. Since it does not produce any result, it cannot be semantically equivalent to the gold query which returns ranked recipient obligations per NAICS description.",
+          "predicted_sql": "SELECT r.recipient_name, naics_description, SUM(federal_action_obligation) AS total_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei JOIN naics na ON a.naics_code = na.naics_code WHERE fiscal_year = 2022 GROUP BY r.recipient_name, naics_description ORDER BY total_obligation DESC",
+          "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients"
+        },
+        {
+          "question": "For each state of performance, what were the top 2 cities by total obligations?",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query filters on a specific recipient and uses awarding_state_code, then selects only the top 2 cities overall, omitting the state column and not ranking per state. The gold query ranks cities within each performance state and returns the top two per state. Additionally, the predicted query has a syntax error in the preview, indicating it would not run correctly. Therefore it is not semantically equivalent.",
+          "predicted_sql": "WITH city_totals AS (SELECT pop_city_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE awarding_state_code = ANY (SELECT recipient_state_code FROM recipients WHERE recipient_name = 'PROQUEST LLC') GROUP BY pop_city_name ORDER BY total_obligation DESC LIMIT 2) SELECT pop_city_name FROM city_totals",
+          "gold_sql": "WITH city_totals AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, ROW_NUMBER() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rn FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM city_totals WHERE rn <= 2"
+        },
+        {
+          "question": "Find the most recent transaction for each PSC code.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query returns more rows (2241 vs 1340) and includes an extra award_id column, indicating it does not match the gold query's semantics of selecting a single most recent transaction per PSC code. The join on max date can produce multiple rows for ties, whereas the gold query uses ROW_NUMBER to return exactly one per PSC code.",
+          "predicted_sql": "SELECT t1.psc_code, t1.award_id, t1.transaction_id, t1.action_date FROM award_transactions t1 JOIN (SELECT psc_code, MAX(action_date) AS max_date FROM award_transactions GROUP BY psc_code) t2 ON t1.psc_code = t2.psc_code AND t1.action_date = t2.max_date",
+          "gold_sql": "WITH ranked_psc AS ( SELECT psc_code, transaction_id, action_date, ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn FROM award_transactions ) SELECT psc_code, transaction_id, action_date FROM ranked_psc WHERE rn = 1"
+        },
+        {
+          "question": "Show running totals of obligations by fiscal year ordered by action date.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run due to an unresolved column `action_date`, as shown in the error preview. Consequently it cannot produce the running totals by fiscal year as required, making it not equivalent to the gold query.",
+          "predicted_sql": "SELECT DATE_TRUNC('year', action_date) AS fiscal_year, SUM(federal_action_obligation) AS running_total_obligation FROM award_transactions GROUP BY DATE_TRUNC('year', action_date) ORDER BY action_date",
+          "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions"
+        }
+      ]
+    },
+    "frontier": {
+      "source_result_file": "results/frontier_databricks_uc.json",
+      "source_git_commit": "fbfa1bae66211e9016a125d9ac69a6607a2d6454",
+      "stats": {
+        "n": 27,
+        "n_judged": 27,
+        "ex_correct": 19,
+        "judge_equivalent": 25,
+        "agreement": 0.7777777777777778,
+        "disagreements": 6
+      },
+      "records": [
+        {
+          "question": "Which awards have parent PIID 36C10X19A0012?",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "Both queries filter on the same parent_piid value and return the award identifiers (award_id and piid). The predicted query adds the parent_piid column and uses DISTINCT, which may reduce duplicate rows but does not change the set of unique awards returned. Since the question asks for which awards have that parent PIID, the extra column and removal of duplicates do not affect the answer.",
+          "predicted_sql": "SELECT DISTINCT award_id, piid, parent_piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+          "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'"
+        },
+        {
+          "question": "Show all definitive contracts performed in California.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses the same WHERE filters (award_type = 'DEFINITIVE CONTRACT' and pop_state_code = 'CA') as the gold query, yielding the same 4206 rows. Although it returns additional columns, the core result set (transaction_id and recipient_name) matches the gold output, so it is semantically equivalent for the question.",
+          "predicted_sql": "SELECT transaction_id, award_id, piid, recipient_name, federal_action_obligation, pop_city_name, pop_state_code FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
+          "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'"
+        },
+        {
+          "question": "List the PIIDs and action dates for contracts funded by the Department of Defense.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query is identical to the gold query and its result preview matches the gold preview, returning the same PIIDs and action dates for Department of Defense contracts.",
+          "predicted_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'"
+        },
+        {
+          "question": "Show transactions with negative federal action obligations.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL exactly matches the gold SQL, applying the same filter for negative federal_action_obligation, and the result preview is identical, indicating the same answer would be returned.",
+          "predicted_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0",
+          "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0"
+        },
+        {
+          "question": "What is the earliest and latest action date for each fiscal year?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query is identical to the gold query, and its result preview matches the gold preview, indicating it would return the same earliest and latest action dates per fiscal year.",
+          "predicted_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year",
+          "gold_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year"
+        },
+        {
+          "question": "What is the average obligation amount for purchase orders?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses the same AVG aggregation on the same column with the same filter on award_type = 'PURCHASE ORDER' as the gold query; only the column alias differs, which does not affect the result. The result preview matches the gold preview, confirming equivalence.",
+          "predicted_sql": "SELECT AVG(federal_action_obligation) AS average_obligation_amount FROM award_transactions WHERE award_type = 'PURCHASE ORDER'",
+          "gold_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'"
+        },
+        {
+          "question": "What is the maximum current total value of award for each award type?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query selects the same award_type and computes the maximum of current_total_value_of_award, grouping by award_type, exactly as the gold query. The only differences are the column alias and the missing ORDER BY clause, which do not affect the returned values. The result previews contain the same rows (order may differ), confirming equivalence.",
+          "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_current_total_value_of_award FROM award_transactions GROUP BY award_type",
+          "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC"
+        },
+        {
+          "question": "What is the total obligation amount grouped by awarding sub-agency name?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL exactly matches the gold query in terms of selected columns, aggregation, grouping, and ordering, and the result preview is identical, indicating it would return the same answer.",
+          "predicted_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation\nFROM award_transactions\nGROUP BY awarding_sub_agency_name\nORDER BY total_obligation DESC",
+          "gold_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC"
+        },
+        {
+          "question": "What recipient names and obligations are associated with BPA CALL awards in Arizona?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query returns the same 368 rows with identical first five records as the gold query, as shown in the result previews. Although the predicted SQL omits the explicit join to the recipients table, the output matches the gold output, indicating semantic equivalence for this question.",
+          "predicted_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE award_type = 'BPA CALL' AND recipient_state_code = 'AZ'",
+          "gold_sql": "SELECT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'"
+        },
+        {
+          "question": "Which awards performed in Washington state were funded by the Department of Veterans Affairs?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query returns 6,526 rows while the gold query returns 3,967 rows, indicating a different set of results. Although both filter on pop_state_code = 'WA' and funding agency, the gold query joins with the locations and agencies tables to ensure the award is performed in Washington and funded by the Department of Veterans Affairs, while the predicted query relies only on fields in award_transactions and returns extra columns, leading to a mismatch in returned awards.",
+          "predicted_sql": "SELECT award_id, transaction_id, piid, recipient_name, federal_action_obligation\nFROM award_transactions\nWHERE pop_state_code = 'WA'\n  AND funding_agency_name = 'Department of Veterans Affairs'",
+          "gold_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'"
+        },
+        {
+          "question": "List recipient names and PIIDs for awards with PSC description related to mobile device products.",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query uses a LIKE filter that matches any PSC description containing the phrase \"MOBILE DEVICE PRODUCTS\", returning 102 rows, whereas the gold query matches an exact PSC description and returns 59 distinct rows after joining to the recipients table. The difference in filter criteria and row count shows the queries are not semantically equivalent.",
+          "predicted_sql": "SELECT recipient_name, piid FROM award_transactions WHERE UPPER(psc_description) LIKE '%MOBILE DEVICE PRODUCTS%'",
+          "gold_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description = 'IT AND TELECOM - MOBILE DEVICE PRODUCTS (HARDWARE AND PERPETUAL LICENSE SOFTWARE)'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2022 were awarded to recipients in DC?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query is identical to the gold query, using the same filters on fiscal_year = 2022 and recipient_state_code = 'DC', and the result preview matches the gold preview (787 transactions). Hence it is semantically equivalent.",
+          "predicted_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'"
+        },
+        {
+          "question": "Retrieve PIIDs and action dates for BPA calls in fiscal year 2022.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses the same SELECT columns and identical WHERE predicates (award_type = 'BPA CALL' and fiscal_year = 2022) just in a different order. The result preview matches the gold preview in row count and sample rows, confirming it would return the same answer.",
+          "predicted_sql": "SELECT piid, action_date FROM award_transactions WHERE award_type = 'BPA CALL' AND fiscal_year = 2022",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA CALL'"
+        },
+        {
+          "question": "List recipient names and obligations for fiscal year 2022 awards with PSC code DB10.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL is identical to the gold SQL, using the same columns, filters, and table, and the result preview matches the gold preview (19 rows with identical first rows). Therefore it would return the same answer.",
+          "predicted_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'",
+          "gold_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2023 used NAICS code 811212?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query exactly matches the gold query in text and filters, and the result preview shows the same count (80), indicating it would return the same answer for the question.",
+          "predicted_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'"
+        },
+        {
+          "question": "What are the top 10 recipients by total federal action obligations in fiscal year 2024?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses the same table, filters for fiscal_year 2024, sums the same column (federal_action_obligation), groups by recipient_name, orders by the summed value descending, and limits to 10 rows. The only difference is the alias name for the sum, which does not affect semantics. The result preview matches the gold preview, confirming equivalence.",
+          "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_federal_action_obligation\nFROM award_transactions\nWHERE fiscal_year = 2024\nGROUP BY recipient_name\nORDER BY total_federal_action_obligation DESC\nLIMIT 10",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which 15 recipients had the highest total obligations for purchase orders?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query matches the gold query in filtering for purchase orders, summing the same federal_action_obligation column, grouping by recipient_name, ordering by the summed total in descending order, and limiting to the top 15. The alias name differs but does not affect the result, and the result preview is identical, confirming equivalence.",
+          "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligations\nFROM award_transactions\nWHERE award_type = 'PURCHASE ORDER'\nGROUP BY recipient_name\nORDER BY total_obligations DESC\nLIMIT 15",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15"
+        },
+        {
+          "question": "List the top 5 funding agencies by obligated amount.",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL matches the gold SQL in logic\u2014summing federal_action_obligation per funding_agency_name, grouping, ordering descending, and limiting to the top 5. The result preview is identical to the gold preview, indicating the same answer would be returned.",
+          "predicted_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligated_amount FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligated_amount DESC LIMIT 5",
+          "gold_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligation DESC LIMIT 5"
+        },
+        {
+          "question": "Which 10 recipients received the most obligations from the Department of Defense as funding agency?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query matches the gold query in logic, using the same table, filter, aggregation, ordering, and limit. The result preview is identical to the gold preview, confirming equivalent output.",
+          "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligations\nFROM award_transactions\nWHERE funding_agency_name = 'Department of Defense'\nGROUP BY recipient_name\nORDER BY total_obligations DESC\nLIMIT 10",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE funding_agency_name = 'Department of Defense' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which award types had average obligations greater than the overall transaction average?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the average federal_action_obligation per award_type and filters for those with an average greater than the overall average, exactly matching the logic of the gold query. The result preview is identical, confirming semantic equivalence.",
+          "predicted_sql": "WITH overall_avg AS (\n  SELECT AVG(federal_action_obligation) AS overall_avg_obligation\n  FROM award_transactions\n)\nSELECT award_type, AVG(federal_action_obligation) AS avg_obligation\nFROM award_transactions\nGROUP BY award_type\nHAVING AVG(federal_action_obligation) > (SELECT overall_avg_obligation FROM overall_avg)\nORDER BY avg_obligation DESC",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type), overall_avg AS (SELECT AVG(federal_action_obligation) AS overall_avg_obligation FROM award_transactions) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.overall_avg_obligation ORDER BY t.avg_obligation DESC"
+        },
+        {
+          "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses the same grouping and HAVING filter (>1000) as the gold query, and the result preview matches the gold preview (same row count and top rows). The difference in using a HAVING clause directly versus a CTE does not affect semantics, so the queries are equivalent.",
+          "predicted_sql": "SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code HAVING COUNT(*) > 1000 ORDER BY transaction_count DESC",
+          "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC"
+        },
+        {
+          "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses a correlated subquery to filter rows where the obligation exceeds the average for the same award_type, which is logically identical to the gold query's CTE join approach. The result previews match in row count and sample rows, confirming equivalence.",
+          "predicted_sql": "SELECT transaction_id, award_type, federal_action_obligation\nFROM award_transactions a\nWHERE federal_action_obligation > (\n    SELECT AVG(b.federal_action_obligation)\n    FROM award_transactions b\n    WHERE b.award_type = a.award_type\n)",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation"
+        },
+        {
+          "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query correctly computes FY2024 obligations per funding agency, compares each agency's share to the total, and filters for shares greater than 10%, matching the gold query's logic. Both previews show the same single agency (Department of Veterans Affairs) with the same obligation amount, confirming semantic equivalence despite the extra percentage column in the prediction.",
+          "predicted_sql": "WITH fy2024_totals AS (\n  SELECT SUM(federal_action_obligation) AS total_obligations\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n),\nagency_obligations AS (\n  SELECT\n    funding_agency_name,\n    SUM(federal_action_obligation) AS agency_obligations\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n  GROUP BY funding_agency_name\n)\nSELECT\n  a.funding_agency_name,\n  a.agency_obligations,\n  (a.agency_obligations / t.total_obligations) * 100 AS obligation_percent\nFROM agency_obligations a\nCROSS JOIN fy2024_totals t\nWHERE (a.agency_obligations / t.total_obligations) > 0.10\nORDER BY obligation_percent DESC",
+          "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC"
+        },
+        {
+          "question": "Rank recipients by total obligations within each NAICS description.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes total obligations per recipient per NAICS description and ranks them within each NAICS group, matching the gold query's intent. Although it uses RANK() instead of DENSE_RANK(), the result previews are identical for the displayed rows and row count, indicating the outputs would be the same for this dataset.",
+          "predicted_sql": "SELECT naics_description, recipient_name, total_obligations, recipient_rank\nFROM (\n    SELECT\n        naics_description,\n        recipient_name,\n        SUM(federal_action_obligation) AS total_obligations,\n        RANK() OVER (\n            PARTITION BY naics_description\n            ORDER BY SUM(federal_action_obligation) DESC\n        ) AS recipient_rank\n    FROM award_transactions\n    GROUP BY naics_description, recipient_name\n) ranked_recipients\nORDER BY naics_description, recipient_rank",
+          "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients"
+        },
+        {
+          "question": "For each state of performance, what were the top 2 cities by total obligations?",
+          "tags": [
+            "window"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the sum of federal_action_obligation per state and city, ranks cities per state by descending total obligations, and selects the top two, exactly matching the gold query's logic. The result previews are identical, confirming semantic equivalence.",
+          "predicted_sql": "WITH city_obligations AS (\n  SELECT\n    pop_state_code,\n    pop_city_name,\n    SUM(federal_action_obligation) AS total_obligations\n  FROM award_transactions\n  GROUP BY pop_state_code, pop_city_name\n),\nranked_cities AS (\n  SELECT\n    pop_state_code,\n    pop_city_name,\n    total_obligations,\n    ROW_NUMBER() OVER (\n      PARTITION BY pop_state_code\n      ORDER BY total_obligations DESC\n    ) AS rn\n  FROM city_obligations\n)\nSELECT\n  pop_state_code,\n  pop_city_name,\n  total_obligations\nFROM ranked_cities\nWHERE rn <= 2\nORDER BY pop_state_code, total_obligations DESC",
+          "gold_sql": "WITH city_totals AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, ROW_NUMBER() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rn FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM city_totals WHERE rn <= 2"
+        },
+        {
+          "question": "Find the most recent transaction for each PSC code.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query matches the gold query in logic: it partitions award_transactions by psc_code, orders by action_date descending, assigns row numbers, and selects the first row per PSC. The CTE name differs but does not affect semantics, and the result preview is identical to the gold preview, confirming equivalence.",
+          "predicted_sql": "WITH ranked_transactions AS (\n  SELECT\n    psc_code,\n    transaction_id,\n    action_date,\n    ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn\n  FROM award_transactions\n)\nSELECT psc_code, transaction_id, action_date\nFROM ranked_transactions\nWHERE rn = 1",
+          "gold_sql": "WITH ranked_psc AS ( SELECT psc_code, transaction_id, action_date, ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn FROM award_transactions ) SELECT psc_code, transaction_id, action_date FROM ranked_psc WHERE rn = 1"
+        },
+        {
+          "question": "Show running totals of obligations by fiscal year ordered by action date.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the same running total of federal_action_obligation per fiscal year ordered by action_date, and the previewed values match the gold running total values. The only difference is that the predicted query omits the original obligation column, which is not required by the question, so the semantic answer is equivalent.",
+          "predicted_sql": "SELECT fiscal_year, action_date, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total_obligation FROM award_transactions ORDER BY fiscal_year, action_date",
+          "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions"
+        }
+      ]
+    },
+    "finetuned": {
+      "source_result_file": "results/finetuned_databricks_uc.json",
+      "source_git_commit": "fbfa1bae66211e9016a125d9ac69a6607a2d6454",
+      "stats": {
+        "n": 27,
+        "n_judged": 27,
+        "ex_correct": 13,
+        "judge_equivalent": 13,
+        "agreement": 1.0,
+        "disagreements": 0
+      },
+      "records": [
+        {
+          "question": "Which awards have parent PIID 36C10X19A0012?",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query returns the parent_piid column (which is the constant '36C10X19A0012') instead of the award's own piid as the gold query does. The result previews show different values in the second column, so the answers are not semantically equivalent.",
+          "predicted_sql": "SELECT award_id, parent_piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+          "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'"
+        },
+        {
+          "question": "Show all definitive contracts performed in California.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run with an unresolved column error, so it cannot return the same result set as the gold query, which successfully selects definitive contracts in California.",
+          "predicted_sql": "SELECT transaction_id, piid, definitive_contract FROM award_transactions WHERE recipient_state_code = 'CA'",
+          "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'"
+        },
+        {
+          "question": "List the PIIDs and action dates for contracts funded by the Department of Defense.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query returns the same PIIDs and action dates as the gold query, as shown by identical result previews. Although it uses an extra JOIN and DISTINCT, these do not change the returned rows for the given data, making it semantically equivalent.",
+          "predicted_sql": "SELECT DISTINCT a.piid, a.action_date FROM award_transactions a JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE g.agency_name = 'Department of Defense'",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'"
+        },
+        {
+          "question": "Show transactions with negative federal action obligations.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query selects the recipient_name column instead of federal_action_obligation, omitting the negative obligation values required by the question. Therefore it does not return the same answer as the gold query.",
+          "predicted_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE federal_action_obligation < 0",
+          "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0"
+        },
+        {
+          "question": "What is the earliest and latest action date for each fiscal year?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query did not run (result preview shows a parsing error) and its SQL is garbled, so it cannot return the same earliest and latest action dates per fiscal year as the gold query.",
+          "predicted_sql": "WITH ranked_actions AS ( SELECT fiscal_year, action_date, transaction_id, federal_action_obligation, federal_action_type, recipient_name, recipient_uei, recipient_uniquemmb, recipient_state_code, recipient_country_code, recipient_country_name, recipient_city_name, recipient_state_name, recipient_country_name, recipient_country_code, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country_name, recipient_country",
+          "gold_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year"
+        },
+        {
+          "question": "What is the average obligation amount for purchase orders?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL exactly matches the gold SQL in text, filters, aggregation, and column, and the result preview is identical, indicating it would return the same answer.",
+          "predicted_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'",
+          "gold_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'"
+        },
+        {
+          "question": "What is the maximum current total value of award for each award type?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL is identical to the gold SQL, and the result preview matches the gold preview, indicating it returns the same maximum current total value per award type.",
+          "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
+          "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC"
+        },
+        {
+          "question": "What is the total obligation amount grouped by awarding sub-agency name?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL is identical to the gold SQL, using the same aggregation, grouping, and ordering, and the result preview matches exactly, indicating it would return the same answer.",
+          "predicted_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC",
+          "gold_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC"
+        },
+        {
+          "question": "What recipient names and obligations are associated with BPA CALL awards in Arizona?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query adds a DISTINCT clause, which removes duplicate rows, resulting in fewer rows (320 vs. 368) than the gold query. This changes the answer set, so the queries are not semantically equivalent.",
+          "predicted_sql": "SELECT DISTINCT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'",
+          "gold_sql": "SELECT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'"
+        },
+        {
+          "question": "Which awards performed in Washington state were funded by the Department of Veterans Affairs?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query adds an extra condition `AND a.funding_sub_agency_name IS NULL` in the join to agencies, which filters out any awards that have a non\u2011null sub\u2011agency name. This changes the result set compared to the gold query (which has no such filter) and is reflected by the predicted preview returning 0 rows versus the gold preview returning thousands. Hence the queries are not semantically equivalent.",
+          "predicted_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name AND a.funding_sub_agency_name IS NULL WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'",
+          "gold_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'"
+        },
+        {
+          "question": "List recipient names and PIIDs for awards with PSC description related to mobile device products.",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query references a non\u2011existent column r.piid, causing an execution error as shown in the preview, whereas the gold query correctly selects a.piid. Because the predicted query fails to run, it cannot be semantically equivalent.",
+          "predicted_sql": "SELECT DISTINCT r.recipient_name, r.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description LIKE '%mobile device products%'",
+          "gold_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description = 'IT AND TELECOM - MOBILE DEVICE PRODUCTS (HARDWARE AND PERPETUAL LICENSE SOFTWARE)'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2022 were awarded to recipients in DC?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL exactly matches the gold SQL in text, filters, and aggregation, and both previews show the same single result row (787). Therefore it returns the same answer.",
+          "predicted_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'"
+        },
+        {
+          "question": "Retrieve PIIDs and action dates for BPA calls in fiscal year 2022.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query filters award_type = 'BPA' while the gold query uses award_type = 'BPA CALL'. This mismatch changes the result set (the preview shows 0 rows versus 6528 rows in the gold), so it does not return the same answer.",
+          "predicted_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA'",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA CALL'"
+        },
+        {
+          "question": "List recipient names and obligations for fiscal year 2022 awards with PSC code DB10.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "Both queries filter on fiscal_year=2022 and psc_code='DB10' and select recipient name and federal_action_obligation. The predicted query joins to the recipients table but returns the same number of rows (19) as the gold query, and the result previews show matching values (e.g., THUNDERCAT TECHNOLOGY, LLC with 257455.29). Differences in column order, aliases, or use of DISTINCT do not affect equivalence.",
+          "predicted_sql": "SELECT DISTINCT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_code = 'DB10' AND a.fiscal_year = 2022",
+          "gold_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2023 used NAICS code 811212?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL is identical to the gold SQL, using the same table, filters, and aggregation, and the result preview matches the gold preview, indicating the same answer would be returned.",
+          "predicted_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'"
+        },
+        {
+          "question": "What are the top 10 recipients by total federal action obligations in fiscal year 2024?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL is identical to the gold query and the result preview matches the gold preview, showing the same top 10 recipients and values. Therefore it is semantically equivalent.",
+          "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which 15 recipients had the highest total obligations for purchase orders?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL matches the gold SQL exactly in logic, filters, grouping, ordering, and limit, and the result preview shows the same top 5 rows and total row count, indicating identical answers.",
+          "predicted_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15"
+        },
+        {
+          "question": "List the top 5 funding agencies by obligated amount.",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query references a non\u2011existent column `agency_name`, resulting in an execution error, whereas the gold query correctly uses `funding_agency_name` and would return the top 5 agencies by obligated amount. Hence the predicted query is not semantically equivalent.",
+          "predicted_sql": "SELECT agency_name, SUM(federal_action_obligation) AS obligated_amount FROM award_transactions GROUP BY agency_name ORDER BY obligated_amount DESC LIMIT 5",
+          "gold_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligation DESC LIMIT 5"
+        },
+        {
+          "question": "Which 10 recipients received the most obligations from the Department of Defense as funding agency?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query correctly filters on the Department of Defense, aggregates federal_action_obligation per recipient, orders by the total, and limits to the top 10. Although it joins the recipients table, this does not alter the results, and the preview matches the gold preview, indicating semantic equivalence.",
+          "predicted_sql": "SELECT r.recipient_name, SUM(a.federal_action_obligation) AS total_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.funding_agency_name = 'Department of Defense' GROUP BY r.recipient_name ORDER BY total_obligation DESC LIMIT 10",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE funding_agency_name = 'Department of Defense' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which award types had average obligations greater than the overall transaction average?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the average per award_type and the overall average using the same formulas as the gold query, and filters with the same > comparison. The only difference is the missing ORDER BY clause, which does not affect the set of award types returned, and the result preview matches the gold preview. Hence it is semantically equivalent.",
+          "predicted_sql": "WITH type_avg AS ( SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type ), overall_avg AS ( SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions ) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.avg_obligation",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type), overall_avg AS (SELECT AVG(federal_action_obligation) AS overall_avg_obligation FROM award_transactions) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.overall_avg_obligation ORDER BY t.avg_obligation DESC"
+        },
+        {
+          "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query aggregates award_transactions by naics_code, counts transactions, filters for counts greater than 1000, and orders by count descending\u2014identical logic to the gold query (the CTE does not affect semantics). The preview results match the gold preview, confirming identical output.",
+          "predicted_sql": "SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code HAVING transaction_count > 1000 ORDER BY transaction_count DESC",
+          "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC"
+        },
+        {
+          "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query groups by award_id and compares each transaction's obligation to the average for that award_id, whereas the gold query groups by award_type. This changes the filter criteria and yields a different row count (81,587 vs 39,630), so it does not answer the question as intended.",
+          "predicted_sql": "WITH award_avg AS ( SELECT award_id, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_id ), contract_actions AS ( SELECT a.award_id, a.federal_action_obligation FROM award_transactions a JOIN award_avg b ON a.award_id = b.award_id AND a.federal_action_obligation > b.avg_obligation ) SELECT * FROM contract_actions",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation"
+        },
+        {
+          "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails to run (unresolved column errors) and its logic does not match the gold query: it selects non\u2011existent columns, uses an incorrect percentage filter, and does not compute the overall FY2024 total to compare against the 10% threshold. Therefore it would not return the same answer.",
+          "predicted_sql": "WITH agency_totals AS ( SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name ) SELECT a.agency_name, a.total_obligation, a.total_obligation / ot.total_obligation AS pct FROM award_transactions a JOIN agency_totals ot ON a.funding_agency_name = ot.funding_agency_name WHERE a.fiscal_year = 2024 AND ot.total_obligation > 0.10",
+          "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC"
+        },
+        {
+          "question": "Rank recipients by total obligations within each NAICS description.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query aggregates obligations only by NAICS description and omits recipient-level grouping and ranking, whereas the gold query ranks recipients within each NAICS description. The result previews differ in row count and content, indicating different answers.",
+          "predicted_sql": "SELECT naics_description, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY naics_description ORDER BY total_obligation DESC",
+          "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients"
+        },
+        {
+          "question": "For each state of performance, what were the top 2 cities by total obligations?",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query uses DENSE_RANK instead of ROW_NUMBER, which can return more than two cities per state when there are ties, and the result preview shows markedly different totals (e.g., VA Frederickburg with 59.7\u202fB vs. the gold preview's highest total of ~0.78\u202fB). This indicates the queries would not return the same answer set, so they are not semantically equivalent.",
+          "predicted_sql": "WITH state_city AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM state_city WHERE rnk <= 2 ORDER BY total_obligation DESC",
+          "gold_sql": "WITH city_totals AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, ROW_NUMBER() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rn FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM city_totals WHERE rn <= 2"
+        },
+        {
+          "question": "Find the most recent transaction for each PSC code.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query fails with an unresolved column error (transaction_date) and also applies a global ORDER BY and LIMIT 1 after grouping, which would return only a single row for the entire table rather than the most recent transaction per PSC code. This does not match the gold query\u2019s logic of ranking transactions by action_date within each PSC and selecting the top row per PSC.",
+          "predicted_sql": "SELECT psc_code, transaction_id, federal_action_obligation FROM award_transactions GROUP BY psc_code, transaction_id, federal_action_obligation ORDER BY fiscal_year DESC, transaction_date DESC LIMIT 1",
+          "gold_sql": "WITH ranked_psc AS ( SELECT psc_code, transaction_id, action_date, ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn FROM award_transactions ) SELECT psc_code, transaction_id, action_date FROM ranked_psc WHERE rn = 1"
+        },
+        {
+          "question": "Show running totals of obligations by fiscal year ordered by action date.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted SQL is identical to the gold SQL and the result preview matches exactly, indicating the same running total calculation by fiscal year ordered by action date.",
+          "predicted_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions",
+          "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions"
+        }
+      ]
+    },
+    "genie": {
+      "source_result_file": "results/genie.json",
+      "source_git_commit": "706d3aff57144ff756b23fdbf97284001a7b0b95",
+      "stats": {
+        "n": 27,
+        "n_judged": 27,
+        "ex_correct": 15,
+        "judge_equivalent": 21,
+        "agreement": 0.7777777777777778,
+        "disagreements": 6
+      },
+      "records": [
+        {
+          "question": "Which awards have parent PIID 36C10X19A0012?",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query filters on the same parent_piid value as the gold query and returns the same award_id and piid rows (16 rows). The only difference is the extra parent_piid column, which does not change the set of awards returned, so the answers are semantically equivalent.",
+          "predicted_sql": "SELECT `award_id`, `piid`, `parent_piid` FROM `workspace`.`usaspending`.`award_transactions` WHERE `parent_piid` = '36C10X19A0012';",
+          "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'"
+        },
+        {
+          "question": "Show all definitive contracts performed in California.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query uses the same WHERE conditions (award_type = 'DEFINITIVE CONTRACT' and pop_state_code = 'CA') as the gold query, and adds only redundant non\u2011null checks. It returns the same 4206 rows, just with additional columns, which does not change the correctness of the answer to the question.",
+          "predicted_sql": "SELECT * FROM `workspace`.`usaspending`.`award_transactions` WHERE `award_type` = 'DEFINITIVE CONTRACT' AND `pop_state_code` = 'CA' AND `award_type` IS NOT NULL AND `pop_state_code` IS NOT NULL;",
+          "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'"
+        },
+        {
+          "question": "List the PIIDs and action dates for contracts funded by the Department of Defense.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query selects the same columns, uses the same filter on funding_agency_name, and the result preview matches the gold preview exactly. The additional IS NOT NULL checks do not change the outcome because the gold result contains no null values for those fields.",
+          "predicted_sql": "SELECT `piid`, `action_date` FROM `workspace`.`usaspending`.`award_transactions` WHERE `funding_agency_name` = 'Department of Defense' AND `piid` IS NOT NULL AND `action_date` IS NOT NULL;",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE funding_agency_name = 'Department of Defense'"
+        },
+        {
+          "question": "Show transactions with negative federal action obligations.",
+          "tags": [
+            "single_table"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query applies the same filter (federal_action_obligation < 0) on the same table, returning all rows that satisfy the condition. Although it selects additional columns, the core result (transaction IDs with negative obligations) matches the gold query, and the preview shows identical transaction IDs and obligation values.",
+          "predicted_sql": "SELECT `transaction_id`, `award_id`, `action_date`, `federal_action_obligation`, `recipient_name`, `awarding_agency_name` FROM `workspace`.`usaspending`.`award_transactions` WHERE `federal_action_obligation` < 0",
+          "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0"
+        },
+        {
+          "question": "What is the earliest and latest action date for each fiscal year?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query selects the same fiscal_year, earliest (MIN) and latest (MAX) action_date as the gold query, using equivalent grouping and ordering. The added schema qualifiers and NOT NULL filters do not change the result, as shown by identical result previews.",
+          "predicted_sql": "SELECT `fiscal_year`, MIN(`action_date`) AS earliest_action_date, MAX(`action_date`) AS latest_action_date\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `action_date` IS NOT NULL AND `fiscal_year` IS NOT NULL\nGROUP BY `fiscal_year`\nORDER BY `fiscal_year` ASC",
+          "gold_sql": "SELECT fiscal_year, MIN(action_date) AS earliest_action_date, MAX(action_date) AS latest_action_date FROM award_transactions GROUP BY fiscal_year ORDER BY fiscal_year"
+        },
+        {
+          "question": "What is the average obligation amount for purchase orders?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query selects the same average of federal_action_obligation for award_type 'PURCHASE ORDER' and adds an explicit non\u2011null filter, which does not affect AVG semantics. Table references and column aliases differ only in naming, and the result preview matches the gold output, indicating equivalence.",
+          "predicted_sql": "SELECT AVG(`federal_action_obligation`) AS avg_obligation_amount\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `award_type` = 'PURCHASE ORDER' AND `federal_action_obligation` IS NOT NULL;",
+          "gold_sql": "SELECT AVG(federal_action_obligation) AS avg_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER'"
+        },
+        {
+          "question": "What is the maximum current total value of award for each award type?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "Both queries compute MAX(current_total_value_of_award) for each award_type, grouping by award_type. The predicted query adds non\u2011null filters, which does not affect the shown result set, and the result previews contain the same five award types with identical max values (ordering differs but order is not required). Hence the predicted query is semantically equivalent to the gold query.",
+          "predicted_sql": "SELECT `award_type`, MAX(`current_total_value_of_award`) AS max_current_total_value_of_award\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `award_type` IS NOT NULL AND `current_total_value_of_award` IS NOT NULL\nGROUP BY `award_type`",
+          "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC"
+        },
+        {
+          "question": "What is the total obligation amount grouped by awarding sub-agency name?",
+          "tags": [
+            "aggregation"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query selects the same columns, aggregates the same metric, groups by awarding_sub_agency_name, and orders by the total obligation exactly as the gold query. The extra WHERE clauses only exclude null agency names and null obligations, which does not change the aggregated result for valid agencies, and the result preview matches the gold preview.",
+          "predicted_sql": "SELECT `awarding_sub_agency_name`, SUM(`federal_action_obligation`) AS total_obligation\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `awarding_sub_agency_name` IS NOT NULL AND `federal_action_obligation` IS NOT NULL\nGROUP BY `awarding_sub_agency_name`\nORDER BY total_obligation DESC",
+          "gold_sql": "SELECT awarding_sub_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY awarding_sub_agency_name ORDER BY total_obligation DESC"
+        },
+        {
+          "question": "What recipient names and obligations are associated with BPA CALL awards in Arizona?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query returns the same number of rows and identical first rows as the gold query, indicating it produces the same answer. Although the query accesses recipient fields directly instead of joining, the result preview matches, confirming semantic equivalence for this question.",
+          "predicted_sql": "SELECT `recipient_name`, `federal_action_obligation` FROM `workspace`.`usaspending`.`award_transactions` WHERE `award_type` = 'BPA CALL' AND `recipient_state_code` = 'AZ' AND `recipient_name` IS NOT NULL AND `federal_action_obligation` IS NOT NULL;",
+          "gold_sql": "SELECT r.recipient_name, a.federal_action_obligation FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.award_type = 'BPA CALL' AND r.recipient_state_code = 'AZ'"
+        },
+        {
+          "question": "Which awards performed in Washington state were funded by the Department of Veterans Affairs?",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query returns many more rows (6526 vs 3967) and includes multiple rows per award with extra columns, while the gold query returns distinct award IDs paired with city names only. The predicted query does not perform the joins to locations and agencies that the gold query uses, so its result set is not semantically equivalent to the gold answer.",
+          "predicted_sql": "SELECT `award_id`, `recipient_name`, `action_date`, `federal_action_obligation`, `pop_city_name`, `pop_state_code`, `funding_agency_name`\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `pop_state_code` = 'WA' AND `funding_agency_name` = 'Department of Veterans Affairs'",
+          "gold_sql": "SELECT DISTINCT a.award_id, l.pop_city_name FROM award_transactions a JOIN locations l ON a.pop_city_name = l.pop_city_name AND a.pop_state_code = l.pop_state_code AND a.pop_country_code = l.pop_country_code JOIN agencies g ON a.funding_agency_name = g.agency_name AND a.funding_sub_agency_name = g.sub_agency_name WHERE l.pop_state_code = 'WA' AND g.agency_name = 'Department of Veterans Affairs'"
+        },
+        {
+          "question": "List recipient names and PIIDs for awards with PSC description related to mobile device products.",
+          "tags": [
+            "join"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query uses a broad ILIKE '%mobile device products%' filter and does not enforce distinctness, resulting in 102 rows (including duplicates), whereas the gold query matches an exact PSC description, joins to recipients for accurate names, and returns only 59 distinct rows. The differing row counts and filtering criteria mean the answers are not equivalent.",
+          "predicted_sql": "SELECT `recipient_name`, `piid` FROM `workspace`.`usaspending`.`award_transactions` WHERE `psc_description` ILIKE '%mobile device products%' AND `recipient_name` IS NOT NULL AND `piid` IS NOT NULL;",
+          "gold_sql": "SELECT DISTINCT r.recipient_name, a.piid FROM award_transactions a JOIN recipients r ON a.recipient_uei = r.recipient_uei WHERE a.psc_description = 'IT AND TELECOM - MOBILE DEVICE PRODUCTS (HARDWARE AND PERPETUAL LICENSE SOFTWARE)'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2022 were awarded to recipients in DC?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query adds redundant NOT NULL checks but otherwise matches the gold query's filters on fiscal_year = 2022 and recipient_state_code = 'DC'. Both previews return the same count (787), indicating semantic equivalence.",
+          "predicted_sql": "SELECT COUNT(*) AS num_transactions\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `fiscal_year` = 2022\n  AND `recipient_state_code` = 'DC'\n  AND `recipient_state_code` IS NOT NULL\n  AND `fiscal_year` IS NOT NULL",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2022 AND recipient_state_code = 'DC'"
+        },
+        {
+          "question": "Retrieve PIIDs and action dates for BPA calls in fiscal year 2022.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query adds only non\u2011null checks on piid and action_date, which do not affect the result set shown (all rows have values). The filters, fiscal year, and award_type match the gold query, and the result preview is identical in row count and sample rows, indicating semantic equivalence.",
+          "predicted_sql": "SELECT `piid`, `action_date` FROM `workspace`.`usaspending`.`award_transactions` WHERE `award_type` = 'BPA CALL' AND `fiscal_year` = 2022 AND `piid` IS NOT NULL AND `action_date` IS NOT NULL;",
+          "gold_sql": "SELECT piid, action_date FROM award_transactions WHERE fiscal_year = 2022 AND award_type = 'BPA CALL'"
+        },
+        {
+          "question": "List recipient names and obligations for fiscal year 2022 awards with PSC code DB10.",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query selects the same columns and applies the same fiscal year and PSC code filters as the gold query. The additional NOT NULL conditions do not affect the result set because the gold preview already contains only non\u2011null values, and the result previews match exactly, indicating equivalent answers.",
+          "predicted_sql": "SELECT `recipient_name`, `federal_action_obligation` FROM `workspace`.`usaspending`.`award_transactions` WHERE `fiscal_year` = 2022 AND `psc_code` = 'DB10' AND `recipient_name` IS NOT NULL AND `federal_action_obligation` IS NOT NULL;",
+          "gold_sql": "SELECT recipient_name, federal_action_obligation FROM award_transactions WHERE fiscal_year = 2022 AND psc_code = 'DB10'"
+        },
+        {
+          "question": "How many transactions in fiscal year 2023 used NAICS code 811212?",
+          "tags": [
+            "filter_date_fy"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query adds a redundant IS NOT NULL check but otherwise matches the gold query's filters and aggregation, and both previews show the same count (80). Hence it is semantically equivalent.",
+          "predicted_sql": "SELECT COUNT(*) AS transaction_count\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `fiscal_year` = 2023\n  AND `naics_code` = '811212'\n  AND `naics_code` IS NOT NULL;",
+          "gold_sql": "SELECT COUNT(*) AS transaction_count FROM award_transactions WHERE fiscal_year = 2023 AND naics_code = '811212'"
+        },
+        {
+          "question": "What are the top 10 recipients by total federal action obligations in fiscal year 2024?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query aggregates federal_action_obligation per recipient for fiscal year 2024, ranks them by descending total, and selects the top 10, which is functionally equivalent to the gold query's LIMIT 10 after ordering by total_obligation. The result previews match, confirming identical output.",
+          "predicted_sql": "WITH ranked_recipients AS (\n  SELECT \n    `recipient_name`,\n    SUM(`federal_action_obligation`) AS total_obligation,\n    RANK() OVER (ORDER BY SUM(`federal_action_obligation`) DESC) AS rnk\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `fiscal_year` = 2024\n    AND `recipient_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n  GROUP BY `recipient_name`\n)\nSELECT `recipient_name`, total_obligation\nFROM ranked_recipients\nWHERE rnk <= 10\nORDER BY total_obligation DESC",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which 15 recipients had the highest total obligations for purchase orders?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the same sum of federal_action_obligation for each recipient filtered to purchase orders, ranks them by descending total, and returns those with rank <=15, which yields the same top\u201115 recipients as the gold query. The result preview shows identical top rows and total row count, and the extra null checks do not change the outcome.",
+          "predicted_sql": "WITH ranked_recipients AS (\n  SELECT \n    `recipient_name`,\n    SUM(`federal_action_obligation`) AS total_obligations,\n    RANK() OVER (ORDER BY SUM(`federal_action_obligation`) DESC) AS rank\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `award_type` = 'PURCHASE ORDER'\n    AND `recipient_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n  GROUP BY `recipient_name`\n)\nSELECT `recipient_name`, total_obligations\nFROM ranked_recipients\nWHERE rank <= 15\nORDER BY total_obligations DESC",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE award_type = 'PURCHASE ORDER' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 15"
+        },
+        {
+          "question": "List the top 5 funding agencies by obligated amount.",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the sum of federal_action_obligation per funding_agency_name, ranks them in descending order, and returns the top 5, matching the gold query's logic. The result previews are identical, confirming semantic equivalence.",
+          "predicted_sql": "WITH ranked_agencies AS (\n  SELECT \n    `funding_agency_name`,\n    SUM(`federal_action_obligation`) AS total_obligated,\n    RANK() OVER (ORDER BY SUM(`federal_action_obligation`) DESC) AS rank\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `funding_agency_name` IS NOT NULL AND `federal_action_obligation` IS NOT NULL\n  GROUP BY `funding_agency_name`\n)\nSELECT `funding_agency_name`, total_obligated\nFROM ranked_agencies\nWHERE rank <= 5\nORDER BY total_obligated DESC",
+          "gold_sql": "SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions GROUP BY funding_agency_name ORDER BY total_obligation DESC LIMIT 5"
+        },
+        {
+          "question": "Which 10 recipients received the most obligations from the Department of Defense as funding agency?",
+          "tags": [
+            "top_n"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query groups by both recipient_name and recipient_uei and returns the UEI column, whereas the gold query groups only by recipient_name and returns only two columns. Ranking with RANK() <=10 may also include more than 10 rows in case of ties, unlike the LIMIT 10 in the gold query. These differences can change the set of rows returned, so the queries are not semantically equivalent.",
+          "predicted_sql": "WITH ranked_recipients AS (\n  SELECT \n    `recipient_name`,\n    `recipient_uei`,\n    SUM(`federal_action_obligation`) AS total_obligation,\n    RANK() OVER (ORDER BY SUM(`federal_action_obligation`) DESC) AS rank\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `funding_agency_name` = 'Department of Defense'\n    AND `recipient_name` IS NOT NULL\n    AND `recipient_uei` IS NOT NULL\n  GROUP BY `recipient_name`, `recipient_uei`\n)\nSELECT \n  `recipient_name`,\n  `recipient_uei`,\n  total_obligation\nFROM ranked_recipients\nWHERE rank <= 10\nORDER BY total_obligation DESC",
+          "gold_sql": "SELECT recipient_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE funding_agency_name = 'Department of Defense' GROUP BY recipient_name ORDER BY total_obligation DESC LIMIT 10"
+        },
+        {
+          "question": "Which award types had average obligations greater than the overall transaction average?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the average federal_action_obligation per award_type and filters those with an average greater than the overall average, exactly matching the gold query's logic. The result preview is identical, confirming semantic equivalence.",
+          "predicted_sql": "WITH overall_avg AS (\n  SELECT AVG(`federal_action_obligation`) AS avg_obligation\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `federal_action_obligation` IS NOT NULL\n)\nSELECT `award_type`, AVG(`federal_action_obligation`) AS avg_obligation\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `award_type` IS NOT NULL AND `federal_action_obligation` IS NOT NULL\nGROUP BY `award_type`\nHAVING AVG(`federal_action_obligation`) > (SELECT avg_obligation FROM overall_avg)\nORDER BY avg_obligation DESC",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type), overall_avg AS (SELECT AVG(federal_action_obligation) AS overall_avg_obligation FROM award_transactions) SELECT t.award_type, t.avg_obligation FROM type_avg t CROSS JOIN overall_avg o WHERE t.avg_obligation > o.overall_avg_obligation ORDER BY t.avg_obligation DESC"
+        },
+        {
+          "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query applies the same filtering (naics_code not null) and aggregation (count per naics_code) with a HAVING clause >1000, ordering identically. The result preview matches the gold preview, indicating identical output.",
+          "predicted_sql": "SELECT `naics_code`, COUNT(*) AS transaction_count\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `naics_code` IS NOT NULL\nGROUP BY `naics_code`\nHAVING COUNT(*) > 1000\nORDER BY transaction_count DESC",
+          "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC"
+        },
+        {
+          "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the same average obligation per award_type and filters for transactions where the federal_action_obligation exceeds that average, matching the gold logic. It joins on award_type and applies the same NOT NULL checks. The result preview shows the same row count (39630) and the same transaction IDs and obligations as the gold preview, even though it returns all columns instead of just three, which does not change the semantic answer.",
+          "predicted_sql": "WITH avg_obligation AS (\n  SELECT \n    `award_type`, \n    AVG(`federal_action_obligation`) AS avg_obligation\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `federal_action_obligation` IS NOT NULL AND `award_type` IS NOT NULL\n  GROUP BY `award_type`\n)\nSELECT at.*\nFROM `workspace`.`usaspending`.`award_transactions` at\nJOIN avg_obligation ao\n  ON at.`award_type` = ao.`award_type`\nWHERE at.`federal_action_obligation` > ao.`avg_obligation`\n  AND at.`federal_action_obligation` IS NOT NULL\n  AND at.`award_type` IS NOT NULL",
+          "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation"
+        },
+        {
+          "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+          "tags": [
+            "nested"
+          ],
+          "execution_match": false,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query returns the same funding agency (Department of Veterans Affairs) that exceeds the 10% threshold, matching the gold query's result. The extra percentage column does not alter the set of agencies returned, so the answers are semantically equivalent.",
+          "predicted_sql": "WITH agency_obligations AS (\n  SELECT \n    `funding_agency_name`,\n    SUM(`federal_action_obligation`) AS agency_total\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `fiscal_year` = 2024\n    AND `funding_agency_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n  GROUP BY `funding_agency_name`\n),\nall_obligations AS (\n  SELECT SUM(`federal_action_obligation`) AS total\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `fiscal_year` = 2024\n    AND `funding_agency_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n)\nSELECT \n  a.`funding_agency_name`,\n  a.agency_total,\n  try_divide(a.agency_total,t.total) AS pct_of_total\nFROM agency_obligations a\nCROSS JOIN all_obligations t\nWHERE try_divide(a.agency_total,t.total) > 0.1\nORDER BY pct_of_total DESC",
+          "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC"
+        },
+        {
+          "question": "Rank recipients by total obligations within each NAICS description.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query differs from the gold query in several key ways: it uses RANK instead of DENSE_RANK, applies filters that exclude rows with NULL naics_description or recipient_name, and the result preview shows a different row count and negative obligation values versus the positive totals in the gold preview. These differences affect the ranking and the set of rows returned, so the queries are not semantically equivalent.",
+          "predicted_sql": "WITH ranked_recipients AS (\n  SELECT\n    `naics_description`,\n    `recipient_name`,\n    SUM(`federal_action_obligation`) AS total_obligation,\n    RANK() OVER (\n      PARTITION BY `naics_description`\n      ORDER BY SUM(`federal_action_obligation`) DESC\n    ) AS recipient_rank\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `naics_description` IS NOT NULL\n    AND `recipient_name` IS NOT NULL\n  GROUP BY `naics_description`, `recipient_name`\n)\nSELECT * FROM ranked_recipients\nORDER BY `naics_description`, recipient_rank;",
+          "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients"
+        },
+        {
+          "question": "For each state of performance, what were the top 2 cities by total obligations?",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query filters out rows where pop_state_code or pop_city_name is NULL, whereas the gold query does not. Consequently the result preview shows 111 rows versus the gold's 112 rows, missing the (None, None) row with a large obligation. This difference means the answers are not semantically equivalent.",
+          "predicted_sql": "WITH ranked_cities AS (\n  SELECT \n    `pop_state_code`,\n    `pop_city_name`,\n    SUM(`federal_action_obligation`) AS total_obligations,\n    RANK() OVER (PARTITION BY `pop_state_code` ORDER BY SUM(`federal_action_obligation`) DESC) AS city_rank\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `pop_state_code` IS NOT NULL AND `pop_city_name` IS NOT NULL\n  GROUP BY `pop_state_code`, `pop_city_name`\n)\nSELECT \n  `pop_state_code`,\n  `pop_city_name`,\n  total_obligations\nFROM ranked_cities\nWHERE city_rank <= 2\nORDER BY `pop_state_code`, city_rank, total_obligations DESC",
+          "gold_sql": "WITH city_totals AS ( SELECT pop_state_code, pop_city_name, SUM(federal_action_obligation) AS total_obligation, ROW_NUMBER() OVER (PARTITION BY pop_state_code ORDER BY SUM(federal_action_obligation) DESC) AS rn FROM award_transactions GROUP BY pop_state_code, pop_city_name ) SELECT pop_state_code, pop_city_name, total_obligation FROM city_totals WHERE rn <= 2"
+        },
+        {
+          "question": "Find the most recent transaction for each PSC code.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": false,
+          "judge_equivalent": false,
+          "judge_rationale": "The predicted query returns more rows (2241 vs 1340) because it uses RANK() which includes all ties for the most recent date, whereas the gold query uses ROW_NUMBER to return a single row per PSC code. It also selects additional columns. Therefore it is not semantically equivalent to the gold query.",
+          "predicted_sql": "WITH ranked_transactions AS (\n  SELECT \n    *,\n    RANK() OVER (PARTITION BY `psc_code` ORDER BY `action_date` DESC) AS rnk\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `psc_code` IS NOT NULL AND `action_date` IS NOT NULL\n)\nSELECT \n  `psc_code`,\n  `transaction_id`,\n  `action_date`,\n  `award_id`,\n  `federal_action_obligation`,\n  `recipient_name`\nFROM ranked_transactions\nWHERE rnk = 1;",
+          "gold_sql": "WITH ranked_psc AS ( SELECT psc_code, transaction_id, action_date, ROW_NUMBER() OVER (PARTITION BY psc_code ORDER BY action_date DESC) AS rn FROM award_transactions ) SELECT psc_code, transaction_id, action_date FROM ranked_psc WHERE rn = 1"
+        },
+        {
+          "question": "Show running totals of obligations by fiscal year ordered by action date.",
+          "tags": [
+            "window"
+          ],
+          "execution_match": true,
+          "judge_equivalent": true,
+          "judge_rationale": "The predicted query computes the same running total per fiscal year using the same window definition, selects the same columns, and the result preview matches the gold preview exactly (including row count and values). The added non\u2011null filters do not change the output, so it is semantically equivalent.",
+          "predicted_sql": "SELECT \n  `fiscal_year`,\n  `action_date`,\n  `federal_action_obligation`,\n  SUM(`federal_action_obligation`) OVER (PARTITION BY `fiscal_year` ORDER BY `action_date` ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total_obligation\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `action_date` IS NOT NULL AND `federal_action_obligation` IS NOT NULL\nORDER BY `fiscal_year`, `action_date` ASC",
+          "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions"
+        }
+      ]
+    }
+  },
+  "disagreements": [
+    {
+      "question": "Which awards have parent PIID 36C10X19A0012?",
+      "tags": [
+        "single_table"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "Both queries filter on the same parent_piid and return the same set of award_id values (16 rows, matching the gold preview). The extra filter on federal_action_obligation does not change the result set as shown, and the missing piid column does not affect answering which awards have the given parent PIID.",
+      "predicted_sql": "SELECT award_id\nFROM award_transactions\nWHERE parent_piid = '36C10X19A0012'\nAND federal_action_obligation IS NOT NULL;",
+      "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "run": "base_zero_shot",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Which NAICS codes were used in more than 1000 transactions overall?",
+      "tags": [
+        "nested"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "Both queries count transactions per NAICS code and filter for counts greater than 1000, yielding the same set of 54 NAICS codes. The predicted query lacks an ORDER BY clause, but ordering is not required for equivalence, and the result previews show the same number of rows with overlapping values, confirming semantic equivalence.",
+      "predicted_sql": "SELECT naics_code, COUNT(*) as transaction_count\nFROM award_transactions\nGROUP BY naics_code\nHAVING COUNT(*) > 1000",
+      "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC",
+      "run": "base_zero_shot",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Which awards have parent PIID 36C10X19A0012?",
+      "tags": [
+        "single_table"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query filters on the same parent_piid value and returns the award_id column identical to the gold query, merely adding extra columns (transaction_id and parent_piid). Since the core answer\u2014the awards with the specified parent PIID\u2014is present and matches the gold result preview, the queries are semantically equivalent.",
+      "predicted_sql": "SELECT transaction_id, award_id, parent_piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "run": "base_few_shot",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "What is the maximum current total value of award for each award type?",
+      "tags": [
+        "aggregation"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "Both queries group by award_type and compute MAX(current_total_value_of_award), yielding identical per\u2011type maximum values. The gold query only adds an ORDER BY clause and uses a different alias, which does not affect the returned data. The result previews contain the same values for each award type, confirming semantic equivalence.",
+      "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_current_total_value FROM award_transactions GROUP BY award_type",
+      "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
+      "run": "base_few_shot",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Which awards have parent PIID 36C10X19A0012?",
+      "tags": [
+        "single_table"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "Both queries filter on the same parent_piid value and return the award identifiers (award_id and piid). The predicted query adds the parent_piid column and uses DISTINCT, which may reduce duplicate rows but does not change the set of unique awards returned. Since the question asks for which awards have that parent PIID, the extra column and removal of duplicates do not affect the answer.",
+      "predicted_sql": "SELECT DISTINCT award_id, piid, parent_piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "run": "frontier",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Show all definitive contracts performed in California.",
+      "tags": [
+        "single_table"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query uses the same WHERE filters (award_type = 'DEFINITIVE CONTRACT' and pop_state_code = 'CA') as the gold query, yielding the same 4206 rows. Although it returns additional columns, the core result set (transaction_id and recipient_name) matches the gold output, so it is semantically equivalent for the question.",
+      "predicted_sql": "SELECT transaction_id, award_id, piid, recipient_name, federal_action_obligation, pop_city_name, pop_state_code FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
+      "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
+      "run": "frontier",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "What is the maximum current total value of award for each award type?",
+      "tags": [
+        "aggregation"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query selects the same award_type and computes the maximum of current_total_value_of_award, grouping by award_type, exactly as the gold query. The only differences are the column alias and the missing ORDER BY clause, which do not affect the returned values. The result previews contain the same rows (order may differ), confirming equivalence.",
+      "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_current_total_value_of_award FROM award_transactions GROUP BY award_type",
+      "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
+      "run": "frontier",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+      "tags": [
+        "nested"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query correctly computes FY2024 obligations per funding agency, compares each agency's share to the total, and filters for shares greater than 10%, matching the gold query's logic. Both previews show the same single agency (Department of Veterans Affairs) with the same obligation amount, confirming semantic equivalence despite the extra percentage column in the prediction.",
+      "predicted_sql": "WITH fy2024_totals AS (\n  SELECT SUM(federal_action_obligation) AS total_obligations\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n),\nagency_obligations AS (\n  SELECT\n    funding_agency_name,\n    SUM(federal_action_obligation) AS agency_obligations\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n  GROUP BY funding_agency_name\n)\nSELECT\n  a.funding_agency_name,\n  a.agency_obligations,\n  (a.agency_obligations / t.total_obligations) * 100 AS obligation_percent\nFROM agency_obligations a\nCROSS JOIN fy2024_totals t\nWHERE (a.agency_obligations / t.total_obligations) > 0.10\nORDER BY obligation_percent DESC",
+      "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC",
+      "run": "frontier",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Rank recipients by total obligations within each NAICS description.",
+      "tags": [
+        "window"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query computes total obligations per recipient per NAICS description and ranks them within each NAICS group, matching the gold query's intent. Although it uses RANK() instead of DENSE_RANK(), the result previews are identical for the displayed rows and row count, indicating the outputs would be the same for this dataset.",
+      "predicted_sql": "SELECT naics_description, recipient_name, total_obligations, recipient_rank\nFROM (\n    SELECT\n        naics_description,\n        recipient_name,\n        SUM(federal_action_obligation) AS total_obligations,\n        RANK() OVER (\n            PARTITION BY naics_description\n            ORDER BY SUM(federal_action_obligation) DESC\n        ) AS recipient_rank\n    FROM award_transactions\n    GROUP BY naics_description, recipient_name\n) ranked_recipients\nORDER BY naics_description, recipient_rank",
+      "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients",
+      "run": "frontier",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Show running totals of obligations by fiscal year ordered by action date.",
+      "tags": [
+        "window"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query computes the same running total of federal_action_obligation per fiscal year ordered by action_date, and the previewed values match the gold running total values. The only difference is that the predicted query omits the original obligation column, which is not required by the question, so the semantic answer is equivalent.",
+      "predicted_sql": "SELECT fiscal_year, action_date, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total_obligation FROM award_transactions ORDER BY fiscal_year, action_date",
+      "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions",
+      "run": "frontier",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Which awards have parent PIID 36C10X19A0012?",
+      "tags": [
+        "single_table"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query filters on the same parent_piid value as the gold query and returns the same award_id and piid rows (16 rows). The only difference is the extra parent_piid column, which does not change the set of awards returned, so the answers are semantically equivalent.",
+      "predicted_sql": "SELECT `award_id`, `piid`, `parent_piid` FROM `workspace`.`usaspending`.`award_transactions` WHERE `parent_piid` = '36C10X19A0012';",
+      "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
+      "run": "genie",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Show all definitive contracts performed in California.",
+      "tags": [
+        "single_table"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query uses the same WHERE conditions (award_type = 'DEFINITIVE CONTRACT' and pop_state_code = 'CA') as the gold query, and adds only redundant non\u2011null checks. It returns the same 4206 rows, just with additional columns, which does not change the correctness of the answer to the question.",
+      "predicted_sql": "SELECT * FROM `workspace`.`usaspending`.`award_transactions` WHERE `award_type` = 'DEFINITIVE CONTRACT' AND `pop_state_code` = 'CA' AND `award_type` IS NOT NULL AND `pop_state_code` IS NOT NULL;",
+      "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
+      "run": "genie",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Show transactions with negative federal action obligations.",
+      "tags": [
+        "single_table"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query applies the same filter (federal_action_obligation < 0) on the same table, returning all rows that satisfy the condition. Although it selects additional columns, the core result (transaction IDs with negative obligations) matches the gold query, and the preview shows identical transaction IDs and obligation values.",
+      "predicted_sql": "SELECT `transaction_id`, `award_id`, `action_date`, `federal_action_obligation`, `recipient_name`, `awarding_agency_name` FROM `workspace`.`usaspending`.`award_transactions` WHERE `federal_action_obligation` < 0",
+      "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0",
+      "run": "genie",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "What is the maximum current total value of award for each award type?",
+      "tags": [
+        "aggregation"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "Both queries compute MAX(current_total_value_of_award) for each award_type, grouping by award_type. The predicted query adds non\u2011null filters, which does not affect the shown result set, and the result previews contain the same five award types with identical max values (ordering differs but order is not required). Hence the predicted query is semantically equivalent to the gold query.",
+      "predicted_sql": "SELECT `award_type`, MAX(`current_total_value_of_award`) AS max_current_total_value_of_award\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `award_type` IS NOT NULL AND `current_total_value_of_award` IS NOT NULL\nGROUP BY `award_type`",
+      "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
+      "run": "genie",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
+      "tags": [
+        "nested"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query computes the same average obligation per award_type and filters for transactions where the federal_action_obligation exceeds that average, matching the gold logic. It joins on award_type and applies the same NOT NULL checks. The result preview shows the same row count (39630) and the same transaction IDs and obligations as the gold preview, even though it returns all columns instead of just three, which does not change the semantic answer.",
+      "predicted_sql": "WITH avg_obligation AS (\n  SELECT \n    `award_type`, \n    AVG(`federal_action_obligation`) AS avg_obligation\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `federal_action_obligation` IS NOT NULL AND `award_type` IS NOT NULL\n  GROUP BY `award_type`\n)\nSELECT at.*\nFROM `workspace`.`usaspending`.`award_transactions` at\nJOIN avg_obligation ao\n  ON at.`award_type` = ao.`award_type`\nWHERE at.`federal_action_obligation` > ao.`avg_obligation`\n  AND at.`federal_action_obligation` IS NOT NULL\n  AND at.`award_type` IS NOT NULL",
+      "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation",
+      "run": "genie",
+      "human_label": null,
+      "human_note": null
+    },
+    {
+      "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
+      "tags": [
+        "nested"
+      ],
+      "execution_match": false,
+      "judge_equivalent": true,
+      "judge_rationale": "The predicted query returns the same funding agency (Department of Veterans Affairs) that exceeds the 10% threshold, matching the gold query's result. The extra percentage column does not alter the set of agencies returned, so the answers are semantically equivalent.",
+      "predicted_sql": "WITH agency_obligations AS (\n  SELECT \n    `funding_agency_name`,\n    SUM(`federal_action_obligation`) AS agency_total\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `fiscal_year` = 2024\n    AND `funding_agency_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n  GROUP BY `funding_agency_name`\n),\nall_obligations AS (\n  SELECT SUM(`federal_action_obligation`) AS total\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `fiscal_year` = 2024\n    AND `funding_agency_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n)\nSELECT \n  a.`funding_agency_name`,\n  a.agency_total,\n  try_divide(a.agency_total,t.total) AS pct_of_total\nFROM agency_obligations a\nCROSS JOIN all_obligations t\nWHERE try_divide(a.agency_total,t.total) > 0.1\nORDER BY pct_of_total DESC",
+      "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC",
+      "run": "genie",
+      "human_label": null,
+      "human_note": null
+    }
+  ]
+}
