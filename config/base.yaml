@@ -2,7 +2,8 @@ seed: 42
 spark:
   app_name: t2s
   warehouse_dir: ./spark-warehouse
-catalog: null            # set to a Unity Catalog name when running on Databricks
+  mode: local            # local | databricks (databricks requires `catalog`)
+catalog: workspace       # Unity Catalog name, used when spark.mode=databricks
 schema: usaspending
 data:
   raw_dir: ./data/raw

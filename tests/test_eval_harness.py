@@ -141,3 +141,32 @@ def test_run_eval_cost_is_none_when_pricing_unconfigured(
     )
 
     assert summary.cost_per_1k_queries_usd is None
+
+
+def test_run_eval_records_execution_backend(fake_execute: dict[str, ExecutionResult]) -> None:
+    fake_execute["SELECT a FROM t"] = ExecutionResult(valid=True, rows=[(1,)])
+    examples = [Example(question="q1", sql="SELECT a FROM t", tags=["single_table"], split="test")]
+    predictor = FakePredictor({"q1": "SELECT a FROM t"})
+
+    summary = harness_module.run_eval(
+        model_name="fake",
+        examples=examples,
+        predictor=predictor,
+        spark=None,
+        config=make_config(),
+        execution_backend="databricks_uc",
+    )
+
+    assert summary.execution_backend == "databricks_uc"
+    assert '"execution_backend":"databricks_uc"' in summary.model_dump_json()
+
+
+def test_run_eval_backend_defaults_to_none(fake_execute: dict[str, ExecutionResult]) -> None:
+    summary = harness_module.run_eval(
+        model_name="fake",
+        examples=[],
+        predictor=FakePredictor({}),
+        spark=None,
+        config=make_config(),
+    )
+    assert summary.execution_backend is None

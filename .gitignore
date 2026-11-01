@@ -27,3 +27,4 @@ adapters/
 *.gguf
 # reference papers
 *.pdf
+.venv-dbx/

@@ -12,7 +12,7 @@ from pyspark.sql import SparkSession
 from t2s.eval.config import EvalConfig
 from t2s.eval.execute import execute_sql
 from t2s.eval.metrics import exact_match, rows_match, sql_has_order_by
-from t2s.eval.models import EvalSummary, PredictionRecord, TagMetrics
+from t2s.eval.models import EvalSummary, ExecutionBackend, PredictionRecord, TagMetrics
 from t2s.eval.predictors import Predictor
 from t2s.synth.models import Example
 
@@ -100,6 +100,7 @@ def run_eval(
     git_commit: str | None = None,
     dataset_sha256: str | None = None,
     prompt_sha256: str | None = None,
+    execution_backend: ExecutionBackend | None = None,
 ) -> EvalSummary:
     """Run `predictor` over every example, execute + compare, and aggregate."""
     records = [evaluate_example(spark, example, predictor) for example in examples]
@@ -127,5 +128,6 @@ def run_eval(
         git_commit=git_commit,
         dataset_sha256=dataset_sha256,
         prompt_sha256=prompt_sha256,
+        execution_backend=execution_backend,
         records=records,
     )
