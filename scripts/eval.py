@@ -7,6 +7,7 @@ Baselines (--model):
   base_few_shot    base mlx model, few-shot (k=5) + schema-RAG, no adapter
   frontier         frontier model (Azure AI Foundry), few-shot + schema-RAG
   finetuned        base mlx model + LoRA adapter, zero-shot
+  genie            Databricks Genie space (GENIE_SPACE_ID); requires --spark-mode databricks
 
 Usage:
   uv run python scripts/eval.py --model finetuned --config config/eval.yaml
@@ -15,8 +16,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
+import json
 import logging
+import os
 import subprocess
 from pathlib import Path
 from typing import Literal
@@ -44,7 +48,7 @@ from t2s.train.config import load_train_config
 
 logger = logging.getLogger(__name__)
 
-ModelChoice = Literal["base_zero_shot", "base_few_shot", "frontier", "finetuned"]
+ModelChoice = Literal["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"]
 
 
 def _git_commit() -> str:
@@ -60,12 +64,43 @@ def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _build_genie() -> tuple[Predictor, dict[str, str | None], str | None]:
+    """Genie predictor plus provenance: space/warehouse IDs, date, instructions hash."""
+    from databricks.sdk import WorkspaceClient
+
+    from t2s.eval.predictors import GeniePredictor
+
+    space_id = os.environ.get("GENIE_SPACE_ID")
+    if not space_id:
+        raise RuntimeError("GENIE_SPACE_ID is not set (environment or .env).")
+    w = WorkspaceClient()
+    space = w.genie.get_space(space_id, include_serialized_space=True)
+    serialized = json.loads(space.serialized_space) if space.serialized_space else {}
+    instructions = serialized.get("instructions")
+    metadata: dict[str, str | None] = {
+        "genie_space_id": space_id,
+        "warehouse_id": space.warehouse_id,
+        "run_date": datetime.date.today().isoformat(),
+        "genie_tables": ", ".join(
+            t["identifier"] for t in serialized.get("data_sources", {}).get("tables", [])
+        ),
+    }
+    if instructions:
+        digest = hashlib.sha256(json.dumps(instructions, sort_keys=True).encode()).hexdigest()
+    else:
+        digest = None
+        metadata["prompt_sha256_note"] = (
+            "null: the exported Genie space has no instructions to hash"
+        )
+    return GeniePredictor(w.genie, space_id), metadata, digest
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--model",
         required=True,
-        choices=["base_zero_shot", "base_few_shot", "frontier", "finetuned"],
+        choices=["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"],
     )
     parser.add_argument("--config", default="config/eval.yaml")
     parser.add_argument("--base-config", default="config/base.yaml")
@@ -107,6 +142,8 @@ def main(argv: list[str] | None = None) -> None:
     )
     examples_block = render_examples(few_shot_examples)
 
+    run_metadata: dict[str, str | None] | None = None
+    prompt_sha256: str | None = None
     zero_shot_models = ("base_zero_shot", "finetuned")
     prompt_used = zero_shot_prompt if model_choice in zero_shot_models else few_shot_prompt
 
@@ -130,6 +167,10 @@ def main(argv: list[str] | None = None) -> None:
             examples_block,
             eval_config.max_tokens,
         )
+    elif model_choice == "genie":
+        if backend != "databricks_uc":
+            raise RuntimeError("The genie baseline requires --spark-mode databricks.")
+        predictor, run_metadata, prompt_sha256 = _build_genie()
     else:  # frontier
         if base_config.models.frontier is None:
             raise RuntimeError(
@@ -153,7 +194,8 @@ def main(argv: list[str] | None = None) -> None:
             config=eval_config,
             git_commit=_git_commit(),
             dataset_sha256=_file_sha256(Path(eval_config.test_split)),
-            prompt_sha256=prompt_used.sha256,
+            prompt_sha256=prompt_sha256 if model_choice == "genie" else prompt_used.sha256,
+            run_metadata=run_metadata,
             execution_backend=backend,
         )
     finally:
@@ -162,7 +204,7 @@ def main(argv: list[str] | None = None) -> None:
     results_dir = Path(eval_config.results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
     # UC runs get a suffix so they don't overwrite the local results.
-    suffix = "_databricks_uc" if backend == "databricks_uc" else ""
+    suffix = "_databricks_uc" if backend == "databricks_uc" and model_choice != "genie" else ""
     results_path = results_dir / f"{model_choice}{suffix}.json"
     results_path.write_text(summary.model_dump_json(indent=2))
     logger.info(
@@ -180,6 +222,7 @@ def main(argv: list[str] | None = None) -> None:
             {
                 "model_name": model_choice,
                 "execution_backend": backend,
+                **{k: v for k, v in (run_metadata or {}).items() if v is not None},
                 "git_commit": summary.git_commit,
                 "dataset_sha256": summary.dataset_sha256,
                 "prompt_sha256": summary.prompt_sha256,

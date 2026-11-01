@@ -9,12 +9,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 START = "<!-- RESULTS:START -->"
 END = "<!-- RESULTS:END -->"
-ORDER = ["base_zero_shot", "base_few_shot", "frontier", "finetuned"]
+ORDER = ["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"]
 LABELS = {
     "base_zero_shot": "Base model, zero-shot",
     "base_few_shot": "Base model, few-shot (schema-RAG)",
     "frontier": "Frontier model, few-shot",
     "finetuned": "Fine-tuned (QLoRA), zero-shot",
+    "genie": "Databricks Genie space",
 }
 
 
@@ -36,7 +37,7 @@ def build_table(results_dir: Path) -> str:
     for path in results_dir.glob("*.json"):
         data = json.loads(path.read_text())
         key = data["model_name"]
-        if data.get("execution_backend") == "databricks_uc":
+        if data.get("execution_backend") == "databricks_uc" and key != "genie":
             key += UC_SUFFIX
         runs[key] = data
     if not runs:

@@ -17,6 +17,7 @@ Frozen test set, n = 27 questions.
 | Base model, few-shot (schema-RAG) | 40.7% | 14.8% | 77.8% | 19.0s | 22.0s |
 | Frontier model, few-shot | 66.7% | 22.2% | 96.3% | 2.2s | 3.5s |
 | Fine-tuned (QLoRA), zero-shot | 48.1% | 29.6% | 77.8% | 2.2s | 4.6s |
+| Databricks Genie space | 55.6% | 0.0% | 100.0% | 14.0s | 19.0s |
 | Base model, zero-shot [databricks_uc] | 7.4% | 0.0% | 18.5% | 2.9s | 5.1s |
 | Base model, few-shot (schema-RAG) [databricks_uc] | 40.7% | 14.8% | 77.8% | 20.3s | 23.9s |
 | Frontier model, few-shot [databricks_uc] | 70.4% | 25.9% | 100.0% | 1.5s | 3.3s |
@@ -24,17 +25,17 @@ Frozen test set, n = 27 questions.
 
 Execution accuracy by difficulty tag:
 
-| Tag | Base model, zero-shot | Base model, few-shot (schema-RAG) | Frontier model, few-shot | Fine-tuned (QLoRA), zero-shot | Base model, zero-shot [databricks_uc] | Base model, few-shot (schema-RAG) [databricks_uc] | Frontier model, few-shot [databricks_uc] | Fine-tuned (QLoRA), zero-shot [databricks_uc] |
-|---|---|---|---|---|---|---|---|---|
-| aggregation | 0.0% (n=4) | 25.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) |
-| filter_date_fy | 0.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 0.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) |
-| join | 0.0% (n=3) | 66.7% (n=3) | 0.0% (n=3) | 0.0% (n=3) | 0.0% (n=3) | 66.7% (n=3) | 33.3% (n=3) | 0.0% (n=3) |
-| nested | 0.0% (n=4) | 50.0% (n=4) | 75.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 75.0% (n=4) | 50.0% (n=4) |
-| single_table | 0.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 0.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) |
-| top_n | 0.0% (n=4) | 50.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) |
-| window | 0.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 0.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) |
+| Tag | Base model, zero-shot | Base model, few-shot (schema-RAG) | Frontier model, few-shot | Fine-tuned (QLoRA), zero-shot | Databricks Genie space | Base model, zero-shot [databricks_uc] | Base model, few-shot (schema-RAG) [databricks_uc] | Frontier model, few-shot [databricks_uc] | Fine-tuned (QLoRA), zero-shot [databricks_uc] |
+|---|---|---|---|---|---|---|---|---|---|
+| aggregation | 0.0% (n=4) | 25.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) |
+| filter_date_fy | 0.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) | 0.0% (n=4) | 75.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) |
+| join | 0.0% (n=3) | 66.7% (n=3) | 0.0% (n=3) | 0.0% (n=3) | 33.3% (n=3) | 0.0% (n=3) | 66.7% (n=3) | 33.3% (n=3) | 0.0% (n=3) |
+| nested | 0.0% (n=4) | 50.0% (n=4) | 75.0% (n=4) | 50.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 75.0% (n=4) | 50.0% (n=4) |
+| single_table | 0.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) | 0.0% (n=4) | 25.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) |
+| top_n | 0.0% (n=4) | 50.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) | 75.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 100.0% (n=4) | 75.0% (n=4) |
+| window | 0.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) | 25.0% (n=4) | 0.0% (n=4) | 0.0% (n=4) | 50.0% (n=4) | 25.0% (n=4) |
 
-Generated from `results/*.json` (git commits: 1b6e4f9, f304243, fbfa1ba). Cost per 1K queries: not yet measured.
+Generated from `results/*.json` (git commits: 1b6e4f9, 706d3af, f304243, fbfa1ba). Cost per 1K queries: not yet measured.
 <!-- RESULTS:END -->
 
 ## Pipeline
