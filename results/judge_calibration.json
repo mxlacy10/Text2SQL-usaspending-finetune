@@ -4,7 +4,7 @@
   "judge_prompt_sha256": "4d4d8047cb615deb2be212d93e0ce64b8bd89365e4964de8c7f460d8b97c5b7d",
   "judge_date": "2026-11-01",
   "primary_metric": "execution_accuracy (the judge never replaces it)",
-  "human_signoff": null,
+  "human_signoff": "Max Lacy, 2026-11-01: reviewed all 16 disagreements; all judged equivalent (judge correct, EX false negatives)",
   "runs": {
     "base_zero_shot": {
       "source_result_file": "results/base_zero_shot_databricks_uc.json",
@@ -1574,8 +1574,8 @@
       "predicted_sql": "SELECT award_id\nFROM award_transactions\nWHERE parent_piid = '36C10X19A0012'\nAND federal_action_obligation IS NOT NULL;",
       "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
       "run": "base_zero_shot",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Which NAICS codes were used in more than 1000 transactions overall?",
@@ -1588,8 +1588,8 @@
       "predicted_sql": "SELECT naics_code, COUNT(*) as transaction_count\nFROM award_transactions\nGROUP BY naics_code\nHAVING COUNT(*) > 1000",
       "gold_sql": "WITH naics_counts AS (SELECT naics_code, COUNT(*) AS transaction_count FROM award_transactions GROUP BY naics_code) SELECT naics_code, transaction_count FROM naics_counts WHERE transaction_count > 1000 ORDER BY transaction_count DESC",
       "run": "base_zero_shot",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Which awards have parent PIID 36C10X19A0012?",
@@ -1602,8 +1602,8 @@
       "predicted_sql": "SELECT transaction_id, award_id, parent_piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
       "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
       "run": "base_few_shot",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "What is the maximum current total value of award for each award type?",
@@ -1616,8 +1616,8 @@
       "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_current_total_value FROM award_transactions GROUP BY award_type",
       "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
       "run": "base_few_shot",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Which awards have parent PIID 36C10X19A0012?",
@@ -1630,8 +1630,8 @@
       "predicted_sql": "SELECT DISTINCT award_id, piid, parent_piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
       "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
       "run": "frontier",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Show all definitive contracts performed in California.",
@@ -1644,8 +1644,8 @@
       "predicted_sql": "SELECT transaction_id, award_id, piid, recipient_name, federal_action_obligation, pop_city_name, pop_state_code FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
       "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
       "run": "frontier",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "What is the maximum current total value of award for each award type?",
@@ -1658,8 +1658,8 @@
       "predicted_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_current_total_value_of_award FROM award_transactions GROUP BY award_type",
       "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
       "run": "frontier",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
@@ -1672,8 +1672,8 @@
       "predicted_sql": "WITH fy2024_totals AS (\n  SELECT SUM(federal_action_obligation) AS total_obligations\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n),\nagency_obligations AS (\n  SELECT\n    funding_agency_name,\n    SUM(federal_action_obligation) AS agency_obligations\n  FROM award_transactions\n  WHERE fiscal_year = 2024\n  GROUP BY funding_agency_name\n)\nSELECT\n  a.funding_agency_name,\n  a.agency_obligations,\n  (a.agency_obligations / t.total_obligations) * 100 AS obligation_percent\nFROM agency_obligations a\nCROSS JOIN fy2024_totals t\nWHERE (a.agency_obligations / t.total_obligations) > 0.10\nORDER BY obligation_percent DESC",
       "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC",
       "run": "frontier",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Rank recipients by total obligations within each NAICS description.",
@@ -1686,8 +1686,8 @@
       "predicted_sql": "SELECT naics_description, recipient_name, total_obligations, recipient_rank\nFROM (\n    SELECT\n        naics_description,\n        recipient_name,\n        SUM(federal_action_obligation) AS total_obligations,\n        RANK() OVER (\n            PARTITION BY naics_description\n            ORDER BY SUM(federal_action_obligation) DESC\n        ) AS recipient_rank\n    FROM award_transactions\n    GROUP BY naics_description, recipient_name\n) ranked_recipients\nORDER BY naics_description, recipient_rank",
       "gold_sql": "WITH ranked_recipients AS ( SELECT naics_description, recipient_name, SUM(federal_action_obligation) AS total_obligation, DENSE_RANK() OVER (PARTITION BY naics_description ORDER BY SUM(federal_action_obligation) DESC) AS rnk FROM award_transactions GROUP BY naics_description, recipient_name ) SELECT naics_description, recipient_name, total_obligation, rnk FROM ranked_recipients",
       "run": "frontier",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Show running totals of obligations by fiscal year ordered by action date.",
@@ -1700,8 +1700,8 @@
       "predicted_sql": "SELECT fiscal_year, action_date, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total_obligation FROM award_transactions ORDER BY fiscal_year, action_date",
       "gold_sql": "SELECT fiscal_year, action_date, federal_action_obligation, SUM(federal_action_obligation) OVER (PARTITION BY fiscal_year ORDER BY action_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM award_transactions",
       "run": "frontier",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Which awards have parent PIID 36C10X19A0012?",
@@ -1714,8 +1714,8 @@
       "predicted_sql": "SELECT `award_id`, `piid`, `parent_piid` FROM `workspace`.`usaspending`.`award_transactions` WHERE `parent_piid` = '36C10X19A0012';",
       "gold_sql": "SELECT award_id, piid FROM award_transactions WHERE parent_piid = '36C10X19A0012'",
       "run": "genie",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Show all definitive contracts performed in California.",
@@ -1728,8 +1728,8 @@
       "predicted_sql": "SELECT * FROM `workspace`.`usaspending`.`award_transactions` WHERE `award_type` = 'DEFINITIVE CONTRACT' AND `pop_state_code` = 'CA' AND `award_type` IS NOT NULL AND `pop_state_code` IS NOT NULL;",
       "gold_sql": "SELECT transaction_id, recipient_name FROM award_transactions WHERE award_type = 'DEFINITIVE CONTRACT' AND pop_state_code = 'CA'",
       "run": "genie",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Show transactions with negative federal action obligations.",
@@ -1742,8 +1742,8 @@
       "predicted_sql": "SELECT `transaction_id`, `award_id`, `action_date`, `federal_action_obligation`, `recipient_name`, `awarding_agency_name` FROM `workspace`.`usaspending`.`award_transactions` WHERE `federal_action_obligation` < 0",
       "gold_sql": "SELECT transaction_id, federal_action_obligation FROM award_transactions WHERE federal_action_obligation < 0",
       "run": "genie",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "What is the maximum current total value of award for each award type?",
@@ -1756,8 +1756,8 @@
       "predicted_sql": "SELECT `award_type`, MAX(`current_total_value_of_award`) AS max_current_total_value_of_award\nFROM `workspace`.`usaspending`.`award_transactions`\nWHERE `award_type` IS NOT NULL AND `current_total_value_of_award` IS NOT NULL\nGROUP BY `award_type`",
       "gold_sql": "SELECT award_type, MAX(current_total_value_of_award) AS max_award_value FROM award_transactions GROUP BY award_type ORDER BY max_award_value DESC",
       "run": "genie",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Find all contract actions where the obligation exceeded the average obligation for that award type.",
@@ -1770,8 +1770,8 @@
       "predicted_sql": "WITH avg_obligation AS (\n  SELECT \n    `award_type`, \n    AVG(`federal_action_obligation`) AS avg_obligation\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `federal_action_obligation` IS NOT NULL AND `award_type` IS NOT NULL\n  GROUP BY `award_type`\n)\nSELECT at.*\nFROM `workspace`.`usaspending`.`award_transactions` at\nJOIN avg_obligation ao\n  ON at.`award_type` = ao.`award_type`\nWHERE at.`federal_action_obligation` > ao.`avg_obligation`\n  AND at.`federal_action_obligation` IS NOT NULL\n  AND at.`award_type` IS NOT NULL",
       "gold_sql": "WITH type_avg AS (SELECT award_type, AVG(federal_action_obligation) AS avg_obligation FROM award_transactions GROUP BY award_type) SELECT a.transaction_id, a.award_type, a.federal_action_obligation FROM award_transactions a JOIN type_avg t ON a.award_type = t.award_type WHERE a.federal_action_obligation > t.avg_obligation",
       "run": "genie",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     },
     {
       "question": "Which funding agencies accounted for more than 10 percent of all FY2024 obligations?",
@@ -1784,8 +1784,8 @@
       "predicted_sql": "WITH agency_obligations AS (\n  SELECT \n    `funding_agency_name`,\n    SUM(`federal_action_obligation`) AS agency_total\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `fiscal_year` = 2024\n    AND `funding_agency_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n  GROUP BY `funding_agency_name`\n),\nall_obligations AS (\n  SELECT SUM(`federal_action_obligation`) AS total\n  FROM `workspace`.`usaspending`.`award_transactions`\n  WHERE `fiscal_year` = 2024\n    AND `funding_agency_name` IS NOT NULL\n    AND `federal_action_obligation` IS NOT NULL\n)\nSELECT \n  a.`funding_agency_name`,\n  a.agency_total,\n  try_divide(a.agency_total,t.total) AS pct_of_total\nFROM agency_obligations a\nCROSS JOIN all_obligations t\nWHERE try_divide(a.agency_total,t.total) > 0.1\nORDER BY pct_of_total DESC",
       "gold_sql": "WITH agency_totals AS (SELECT funding_agency_name, SUM(federal_action_obligation) AS total_obligation FROM award_transactions WHERE fiscal_year = 2024 GROUP BY funding_agency_name), grand_total AS (SELECT SUM(total_obligation) AS overall_total FROM agency_totals) SELECT a.funding_agency_name, a.total_obligation FROM agency_totals a CROSS JOIN grand_total g WHERE a.total_obligation > g.overall_total * 0.10 ORDER BY a.total_obligation DESC",
       "run": "genie",
-      "human_label": null,
-      "human_note": null
+      "human_label": true,
+      "human_note": "Reviewer judged equivalent (blanket sign-off, all 16 reviewed)"
     }
   ]
 }

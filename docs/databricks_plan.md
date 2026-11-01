@@ -246,3 +246,12 @@ locations | 4165 | 4165 | OK
   Agent did not label anything.
 - **STOP (human):** fill `human_label` (true = predicted answer is really equivalent) and `human_note` for each entry in
   `disagreements`, set `human_signoff`, and add a sign-off line here. The judge column stays out of the README until then.
+
+### 2026-11-01 — Step 5 human sign-off
+
+- Max Lacy reviewed all 16 disagreements in `results/judge_calibration.json` and labelled every one
+  `human_label: true` (predicted answer equivalent; the judge was right, EX was a false negative). `human_signoff` set.
+- Pattern in the 16: extra/missing columns, aliases, DISTINCT, redundant NOT NULL filters, RANK vs DENSE_RANK. EX
+  (which compares full result sets) scores these as wrong; they stay wrong under EX, which remains the primary metric.
+  Per this calibration, judge_equivalent is trustworthy on these cases (16/16), so it can go into the README in Step 6
+  as a secondary column with that caveat. The blanket label means no per-case notes were written.
