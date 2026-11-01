@@ -20,6 +20,8 @@ synth = ["openai>=1.35", "anthropic>=0.30", "azure-identity>=1.17"]
 # databricks-connect ships its own `pyspark` and clobbers the real one: install it in a
 # separate environment (.venv-dbx), never alongside the local-Spark environment.
 databricks = ["databricks-connect>=17,<20; python_version >= '3.12'"]
+# DSPy baseline (scripts/dspy_optimize.py); installed into .venv-dbx alongside databricks-connect.
+dspy = ["dspy>=3"]
 dev = ["ruff>=0.5", "mypy>=1.10", "pytest>=8", "types-PyYAML>=6"]
 
 [build-system]
@@ -42,7 +44,7 @@ packages = ["t2s"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["databricks.*"]
+module = ["databricks.*", "dspy", "dspy.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

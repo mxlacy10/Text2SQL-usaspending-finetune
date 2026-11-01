@@ -274,3 +274,12 @@ locations | 4165 | 4165 | OK
   p95 latency 4.6s -> 9.1s. The repair loop did not move the headline metric at n=27.
 - Frontier clients now record token usage; cost per 1K stays "not yet measured" until published prices are
   set in `config/eval.yaml`.
+
+### Post-plan: DSPy baseline (2026-11-01)
+- `scripts/dspy_optimize.py` runs DSPy `BootstrapFewShot` (40 train examples, up to 5 demos, metric = execution match
+  against train gold on UC); the test split is never read. Program saved to `results/dspy_frontier_program.json`
+  (its sha256 is the run's `prompt_sha256`). Same frontier model (gpt-5-chat), same schema card.
+- `--model dspy_frontier` on UC: EX 16/27 (59.3%), valid SQL 100%, p50 1.7s, ~21K prompt tokens per query.
+  The hand-built few-shot frontier run scored 19/27; at n=27 the 3-question gap is within noise and DSPy did not
+  beat the hand-picked examples here. Not run: LangChain (would be a prompt-framework swap of the same kind).
+- Added optional dependency extra `dspy` (needed for the DSPy baseline), installed in `.venv-dbx` only.

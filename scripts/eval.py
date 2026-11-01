@@ -6,6 +6,8 @@ Baselines (--model):
   base_zero_shot   base mlx model, zero-shot, no adapter
   base_few_shot    base mlx model, few-shot (k=5) + schema-RAG, no adapter
   frontier         frontier model (Azure AI Foundry), few-shot + schema-RAG
+  dspy_frontier    same frontier model via DSPy with BootstrapFewShot-selected demos
+                   (run scripts/dspy_optimize.py first)
   finetuned        base mlx model + LoRA adapter, zero-shot
   genie            Databricks Genie space (GENIE_SPACE_ID); requires --spark-mode databricks
 
@@ -48,7 +50,9 @@ from t2s.train.config import load_train_config
 
 logger = logging.getLogger(__name__)
 
-ModelChoice = Literal["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"]
+ModelChoice = Literal[
+    "base_zero_shot", "base_few_shot", "frontier", "dspy_frontier", "finetuned", "genie"
+]
 
 
 def _git_commit() -> str:
@@ -100,7 +104,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--model",
         required=True,
-        choices=["base_zero_shot", "base_few_shot", "frontier", "finetuned", "genie"],
+        choices=[
+            "base_zero_shot",
+            "base_few_shot",
+            "frontier",
+            "dspy_frontier",
+            "finetuned",
+            "genie",
+        ],
     )
     parser.add_argument("--config", default="config/eval.yaml")
     parser.add_argument("--base-config", default="config/base.yaml")
@@ -179,6 +190,36 @@ def main(argv: list[str] | None = None) -> None:
         if backend != "databricks_uc":
             raise RuntimeError("The genie baseline requires --spark-mode databricks.")
         predictor, run_metadata, prompt_sha256 = _build_genie()
+    elif model_choice == "dspy_frontier":
+        if (
+            base_config.models.frontier is None
+            or base_config.models.frontier_azure_endpoint is None
+        ):
+            raise RuntimeError("config.models.frontier and frontier_azure_endpoint must be set.")
+        import dspy
+
+        from t2s.eval.dspy_baseline import DspyPredictor, load_program, make_lm
+
+        program_path = Path("results/dspy_frontier_program.json")
+        if not program_path.exists():
+            raise RuntimeError("Run scripts/dspy_optimize.py first.")
+        instructions = load_prompt("dspy_sql_instructions_v1.md")
+        program = load_program(instructions.text, program_path)
+        predictor = DspyPredictor(
+            program,
+            make_lm(base_config.models.frontier, base_config.models.frontier_azure_endpoint),
+            schema_card,
+        )
+        program_sha = _file_sha256(program_path)
+        prompt_sha256 = program_sha
+        run_metadata = {
+            "framework": f"dspy {dspy.__version__}",
+            "optimizer": "BootstrapFewShot",
+            "program": str(program_path),
+            "instructions_sha256": instructions.sha256,
+            "model": base_config.models.frontier,
+            "run_date": datetime.date.today().isoformat(),
+        }
     else:  # frontier
         if base_config.models.frontier is None:
             raise RuntimeError(
@@ -226,7 +267,9 @@ def main(argv: list[str] | None = None) -> None:
             config=eval_config,
             git_commit=_git_commit(),
             dataset_sha256=_file_sha256(Path(eval_config.test_split)),
-            prompt_sha256=prompt_sha256 if model_choice == "genie" else prompt_used.sha256,
+            prompt_sha256=prompt_sha256
+            if model_choice in ("genie", "dspy_frontier")
+            else prompt_used.sha256,
             run_metadata=run_metadata,
             execution_backend=backend,
         )
